@@ -1,0 +1,83 @@
+// INV-OTI — Prisma Schema
+// Sistema de Inventario de Equipos Informáticos
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  usuario   String   @unique
+  password  String
+  nombre    String
+  rol       String   @default("tecnico") // "admin" | "tecnico"
+  estado    String   @default("activo") // "activo" | "inactivo"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Equipo {
+  id                String   @id @default(cuid())
+  tipo              String
+  marca             String
+  modelo            String
+  sn                String   @unique
+  codigoInterno     String?
+  estado            String   @default("activo") // activo, reparacion, baja, almacen, prestamo
+  ubicacion         String?
+  responsable       String?
+  proveedor         String?
+  factura           String?
+  costo             Float    @default(0)
+  fechaAdquisicion  String?
+  fechaGarantia     String?
+  vidaUtil          Int      @default(5)
+  especificaciones  String?  // JSON string
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  movimientos     Movimiento[]
+  mantenimientos  Mantenimiento[]
+}
+
+model Movimiento {
+  id          String   @id @default(cuid())
+  equipoId    String
+  tipo        String   // asignacion, transferencia, reparacion, retorno
+  titulo      String
+  fecha       String
+  descripcion String?
+  responsable String?
+  createdAt   DateTime @default(now())
+
+  equipo Equipo @relation(fields: [equipoId], references: [id], onDelete: Cascade)
+}
+
+model Mantenimiento {
+  id              String   @id @default(cuid())
+  equipoId        String
+  tipo            String   // Preventivo, Correctivo
+  descripcion     String
+  fechaProgramada String
+  fechaEjecucion  String?
+  tecnico         String
+  estado          String   @default("Pendiente") // Pendiente, En proceso, Completado, Cancelado
+  costo           Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  equipo Equipo @relation(fields: [equipoId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}

@@ -1,0 +1,27 @@
+{
+  "name": "INV-OTI — Sistema de Inventario de Equipos",
+  "short_name": "INV-OTI",
+  "description": "PWA offline-first para la gestión profesional de inventario de equipos informáticos.",
+  "start_url": "/invtec.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#030810",
+  "theme_color": "#030810",
+  "lang": "es",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    {
+      "src": "/logo-enatrel.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-enatrel.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

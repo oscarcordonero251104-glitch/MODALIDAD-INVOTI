@@ -14,24 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "INV-OTI — Sistema de Inventario de Equipos Informáticos",
+  description: "Sistema web PWA offline-first para la gestión de inventario de equipos informáticos de la Oficina de Tecnología de la Información (OTI).",
+  keywords: ["INV-OTI", "inventario", "equipos informáticos", "OTI"],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo-enatrel.png",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "INV-OTI — Sistema de Inventario de Equipos Informáticos",
+    description: "Gestión de inventario de equipos informáticos · Oficina de Tecnología de la Información",
+    siteName: "INV-OTI",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    card: "summary",
+    title: "INV-OTI — Sistema de Inventario de Equipos Informáticos",
+    description: "Gestión de inventario de equipos informáticos · Oficina de Tecnología de la Información",
   },
 };
 

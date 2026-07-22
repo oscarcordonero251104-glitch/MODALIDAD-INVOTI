@@ -19,6 +19,7 @@
 <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.prod.js"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.min.js"></script>
 <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
 /* ============================================================
    INV-OTI — Design System
@@ -696,7 +697,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 .qr-scanner-box{background:var(--bg-surface);border:1px solid var(--gray-700);border-radius:10px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.6);animation:scaleIn 0.35s var(--ease-back)}
 .qr-scanner-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--gray-700)}
 .qr-scanner-head h3{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--white);display:flex;align-items:center;gap:10px}
-.qr-scanner-body{padding:20px}
+.qr-scanner-body{padding:20px;max-height:80vh;overflow-y:auto}
 .qr-video-wrap{position:relative;background:var(--bg-void);border-radius:8px;overflow:hidden;border:1px solid var(--gray-700);aspect-ratio:1;max-width:340px;margin:0 auto}
 .qr-video-wrap video{width:100%;height:100%;object-fit:cover;display:block}
 .qr-scan-overlay{position:absolute;inset:0;pointer-events:none}
@@ -712,6 +713,9 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 .qr-scanner-actions{display:flex;gap:10px;margin-top:16px}
 .qr-scanner-error{text-align:center;padding:40px 20px;color:var(--status-retired);font-size:14px}
 .qr-scanner-error svg{width:40px;height:40px;margin:0 auto 12px}
+.qr-public-page{min-height:100vh;padding:24px}
+.qr-public-header{display:flex;align-items:center;gap:10px;max-width:720px;margin:0 auto 24px}
+.qr-public-body{max-width:720px;margin:0 auto}
 @keyframes scanlineY{0%,100%{top:0}50%{top:100%}}
 
 /* ---- Sync indicator ---- */
@@ -727,6 +731,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 /* ---- QR ---- */
 .qr-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px}
 .qr-svg{background:var(--white);padding:16px;border-radius:8px;border:1px solid var(--gray-700)}
+.qr-svg rect{fill:none}
 .qr-svg rect.b{fill:var(--bg-void)}
 .qr-desc{text-align:center;font-size:13px;color:var(--gray-400);max-width:320px}
 
@@ -1126,30 +1131,24 @@ const estadoMeta = (e) => ({
   almacen:{label:'En Almacén',cls:'storage'},
   prestamo:{label:'En Préstamo',cls:'loan'},
 }[e] || {label:e,cls:'gray'});
-const eqById = (id) => DB.equipos.find(e => e.id === Number(id));
+const eqById = (id) => DB.equipos.find(e => String(e.id) === String(id));
 const formatMoney = (n) => '$' + Number(n||0).toLocaleString('es-AR');
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const formatNum = (n) => Number(n||0).toLocaleString('es-AR');
 
-/* QR generator — deterministic visual pattern from text */
-function generateQR(text, size=21) {
-  let h = 0;
-  for (let i=0;i<text.length;i++) h = ((h*31 + text.charCodeAt(i)) & 0x7fffffff);
+/* QR generator — real, scannable QR code (kazuhikoarase/qrcode-generator) */
+function generateQR(text) {
+  const qr = qrcode(0, 'M');
+  qr.addData(text || '');
+  qr.make();
+  const size = qr.getModuleCount();
   const cells = [];
-  for (let y=0;y<size;y++) for (let x=0;x<size;x++) {
-    const inFinder = (x<7 && y<7) || (x>=size-7 && y<7) || (x<7 && y>=size-7);
-    if (inFinder) {
-      const fx = x<7 ? x : x-(size-7);
-      const fy = y<7 ? y : y-(size-7);
-      const border = fx===0||fx===6||fy===0||fy===6;
-      const center = fx>=2 && fx<=4 && fy>=2 && fy<=4;
-      cells.push(border||center);
-    } else {
-      h = (h*1103515245 + 12345) & 0x7fffffff;
-      cells.push(((h>>16)%100) < 48);
+  for (let row=0; row<size; row++) {
+    for (let col=0; col<size; col++) {
+      cells.push(qr.isDark(row, col));
     }
   }
-  return cells;
+  return { size, cells };
 }
 
 /* ============================================================
@@ -2139,16 +2138,52 @@ const EquipoDetailView = {
     const route = VueRouter.useRoute();
     const router = VueRouter.useRouter();
     const loading = ref(true);
-    onMounted(()=>{ setTimeout(()=> loading.value=false, 500); });
+    onMounted(()=>{ setTimeout(()=> { if(DB.ready) loading.value=false; }, 500); });
+    watch(()=>DB.ready, (r)=>{ if(r) loading.value=false; });
 
-    const eq = computed(() => eqById(route.params.id) || DB.equipos[0]);
+    const eq = computed(() => eqById(route.params.id) || DB.equipos[0] || {});
     const movs = computed(() => DB.movimientos.filter(m=>m.equipoId===eq.value.id));
     const mts = computed(() => DB.mantenimientos.filter(m=>m.equipoId===eq.value.id));
-    const activeTab = ref('info');
+    const activeTab = ref(route.query.tab==='qr' ? 'qr' : 'info');
     const movIcon = (t) => ({asignacion:'user',transferencia:'move',reparacion:'wrench',retorno:'checkCircle'}[t]||'info');
     const printLabel = () => toast.info('Enviando etiqueta a impresora…');
-    const downloadQR = () => toast.success('QR descargado (demo)');
-    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, downloadQR, goBack:()=>router.push('/equipos') };
+    const qrUrl = computed(() => location.origin + location.pathname + '#/qr/' + eq.value.id);
+    const qr = computed(() => generateQR(qrUrl.value));
+    const isLocalhost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+    const downloadQR = () => {
+      const q = qr.value;
+      const cell = 10, quiet = 4;
+      const px = (q.size + quiet*2) * cell;
+      const labelH = 44;
+      const canvas = document.createElement('canvas');
+      canvas.width = px;
+      canvas.height = px + labelH;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000000';
+      for (let row=0; row<q.size; row++) {
+        for (let col=0; col<q.size; col++) {
+          if (q.cells[row*q.size+col]) ctx.fillRect((col+quiet)*cell, (row+quiet)*cell, cell, cell);
+        }
+      }
+      ctx.fillStyle = '#111111';
+      ctx.font = '600 20px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(eq.value.sn, canvas.width/2, px + 30);
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'QR-' + eq.value.sn + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+      toast.success('QR descargado');
+    };
+    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR, goBack:()=>router.push('/equipos') };
   },
   template:`
   <div>
@@ -2253,10 +2288,16 @@ const EquipoDetailView = {
 
       <div v-if="activeTab==='qr'" class="panel">
         <div class="qr-wrap">
-          <svg class="qr-svg" :viewBox="'0 0 210 210'" width="200" height="200">
-            <rect v-for="(c,i) in $root.qrCells(eq.sn)" :key="i" v-if="c" :x="(i%21)*9+6" :y="Math.floor(i/21)*9+6" width="9" height="9" class="b"/>
+          <svg class="qr-svg" :viewBox="'0 0 '+qr.size+' '+qr.size" width="200" height="200">
+            <rect v-for="(c,i) in qr.cells" :key="i" :x="i % qr.size" :y="Math.floor(i / qr.size)" width="1" height="1" :class="{b:c}"/>
           </svg>
-          <div class="qr-desc">Escaneá este código para acceder rápidamente a la ficha de este equipo. El código contiene el identificador único <strong style="color:var(--gray-300)">{{eq.sn}}</strong>.</div>
+          <div class="qr-desc">Código QR generado automáticamente al registrar el equipo <strong style="color:var(--gray-300)">{{eq.sn}}</strong>. Es único para este equipo: al escanearlo (con el escáner de la app o con la cámara de cualquier celular) muestra directamente sus especificaciones completas, sin pedir inicio de sesión.</div>
+          <div class="security-notice" v-if="isLocalhost" style="margin-top:0;max-width:420px">
+            <span v-html="$icon('alert')"></span>
+            <div class="security-notice-text">
+              <strong>Estás en localhost.</strong> Este QR solo va a abrir en esta misma computadora. Para que sea escaneable desde un celular, entrá a la app usando la dirección de red de esta PC (ej: <strong>http://192.168.x.x:3000</strong>, visible al iniciar el servidor) en vez de "localhost", y volvé a generar el QR.
+            </div>
+          </div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-outline" @click="downloadQR"><span class="ic" v-html="$icon('download')"></span>Descargar QR</button>
             <button class="btn btn-primary" @click="printLabel"><span class="ic" v-html="$icon('printer')"></span>Imprimir etiqueta</button>
@@ -2348,10 +2389,17 @@ const EquipoFormView = {
       saving.value = true;
       const data = buildData();
       try {
-        if(isEdit.value){ await updateEquipo(existing.value.id, data); toast.success('Equipo actualizado y sincronizado'); }
-        else { await addEquipo(data); toast.success('Equipo registrado y encolado para sincronización'); }
-        saving.value = false;
-        router.push('/equipos');
+        if(isEdit.value){
+          await updateEquipo(existing.value.id, data);
+          toast.success('Equipo actualizado y sincronizado');
+          saving.value = false;
+          router.push('/equipos');
+        } else {
+          const newId = await addEquipo(data);
+          toast.success('Equipo registrado · Código QR generado automáticamente');
+          saving.value = false;
+          router.push('/equipos/'+newId+'?tab=qr');
+        }
       } catch(e){ saving.value=false; toast.error('Error al guardar: '+e.message); }
     };
     return { DB, form, isEdit, tipoOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, genCodigo, save, saving, goBack:()=>router.back() };
@@ -2842,7 +2890,6 @@ const SearchModal = {
    ============================================================ */
 const QRScanner = {
   setup(){
-    const router = VueRouter.useRouter();
     const videoEl = ref(null);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently:true });
@@ -2895,7 +2942,9 @@ const QRScanner = {
 
     const handleResult = (data) => {
       result.value = data;
-      const eq = DB.equipos.find(e => e.sn === data || e.codigoInterno === data);
+      const urlMatch = /#\/(?:qr|equipos)\/([^/?#]+)/.exec(data);
+      let eq = urlMatch ? eqById(urlMatch[1]) : null;
+      if (!eq) eq = DB.equipos.find(e => e.sn === data || e.codigoInterno === data);
       foundEquipo.value = eq || null;
       scanning.value = false;
       stopCamera();
@@ -2910,13 +2959,12 @@ const QRScanner = {
     };
 
     const close = () => { stopCamera(); ui.qrScannerOpen = false; result.value=''; foundEquipo.value=null; error.value=''; };
-    const goToEquipo = () => { const id = foundEquipo.value.id; close(); router.push('/equipos/'+id); };
     const manualMode = () => { stopCamera(); scanning.value = false; };
 
     onMounted(()=>{ startCamera(); });
     onBeforeUnmount(()=>{ stopCamera(); });
 
-    return { videoEl, scanning, error, result, foundEquipo, close, goToEquipo, manualMode, startCamera };
+    return { videoEl, scanning, error, result, foundEquipo, close, manualMode, startCamera, estadoMeta, formatMoney };
   },
   template:`
   <div class="qr-scanner" @click.self="close">
@@ -2940,21 +2988,44 @@ const QRScanner = {
             </div>
           </div>
           <div class="qr-scanner-hint" v-if="!result">Enfocá el código QR del equipo dentro del marco</div>
-          <div v-if="result" class="qr-scanner-result">
+          <div v-if="result && foundEquipo" class="qr-scanner-result">
+            <div class="detail-title-row" style="margin-bottom:0">
+              <div>
+                <div style="font-size:17px;color:var(--white);font-weight:700">{{foundEquipo.marca}} {{foundEquipo.modelo}}</div>
+                <div class="detail-sub" style="margin-top:4px"><span class="sn-tag">{{foundEquipo.sn}}</span> · {{foundEquipo.codigoInterno}}</div>
+              </div>
+              <span :class="['badge','lg',estadoMeta(foundEquipo.estado).cls]"><span class="bdot"></span>{{estadoMeta(foundEquipo.estado).label}}</span>
+            </div>
+            <div class="data-grid" style="margin-top:16px">
+              <div class="data-field"><span class="dl">Tipo</span><span class="dv">{{foundEquipo.tipo}}</span></div>
+              <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{foundEquipo.ubicacion || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{foundEquipo.responsable}}</span></div>
+              <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{foundEquipo.proveedor || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(foundEquipo.costo)}}</span></div>
+              <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{foundEquipo.fechaAdquisicion || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{foundEquipo.fechaGarantia || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{foundEquipo.vidaUtil}} años</span></div>
+            </div>
+            <div v-if="foundEquipo.especificaciones && Object.keys(foundEquipo.especificaciones).length" style="margin-top:16px">
+              <div class="panel-sub" style="margin-bottom:10px">ESPECIFICACIONES TÉCNICAS</div>
+              <div class="spec-block">
+                <div v-for="(v,k) in foundEquipo.especificaciones" :key="k"><span class="sk">{{k}}:</span> <span class="sv">{{v}}</span></div>
+              </div>
+            </div>
+            <div v-if="foundEquipo.notas" style="margin-top:16px">
+              <div class="panel-sub" style="margin-bottom:8px">NOTAS</div>
+              <div style="font-size:13.5px;color:var(--gray-300);line-height:1.6">{{foundEquipo.notas}}</div>
+            </div>
+          </div>
+          <div v-else-if="result" class="qr-scanner-result">
             <div class="rlabel">CÓDIGO LEÍDO</div>
             <div class="rval">{{result}}</div>
-            <div v-if="foundEquipo" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-700)">
-              <div class="rlabel">EQUIPO ENCONTRADO</div>
-              <div style="font-size:15px;color:var(--white);font-weight:600;margin-top:4px">{{foundEquipo.marca}} {{foundEquipo.modelo}}</div>
-              <div style="font-size:13px;color:var(--gray-400);margin-top:2px">{{foundEquipo.tipo}} · {{foundEquipo.ubicacion || '—'}}</div>
-            </div>
-            <div v-else style="margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-700);font-size:13px;color:var(--gray-500)">
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-700);font-size:13px;color:var(--gray-500)">
               No se encontró un equipo con ese identificador en el inventario.
             </div>
           </div>
           <div class="qr-scanner-actions" v-if="result">
-            <button class="btn btn-outline btn-block" @click="result=''; foundEquipo=null; startCamera()">Escanear otro</button>
-            <button v-if="foundEquipo" class="btn btn-primary btn-block" @click="goToEquipo">Ver ficha del equipo</button>
+            <button class="btn btn-primary btn-block" @click="result=''; foundEquipo=null; startCamera()">Escanear otro</button>
           </div>
         </template>
       </div>
@@ -2981,9 +3052,8 @@ const App = {
     const scrollToId = (id) => { const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); };
     const iconSvg = (name) => iconFor(name);
     const typeIconHtml = (tipo) => typeIcon(tipo);
-    const qrCells = (text) => generateQR(text);
     const toggleOnline = () => setOnline(!syncState.online);
-    return { showSplash, scrollToId, iconSvg, typeIconHtml, qrCells, toggleSidebar, toggleOnline, toastStore, ui, db:DB };
+    return { showSplash, scrollToId, iconSvg, typeIconHtml, toggleSidebar, toggleOnline, toastStore, ui, db:DB };
   },
   template:`
   <div class="noise-overlay"></div>
@@ -2999,12 +3069,92 @@ const App = {
 };
 
 /* ============================================================
+   QR PUBLIC VIEW — consulta de equipo sin login (para el QR físico)
+   ============================================================ */
+const QRPublicView = {
+  components:{LogoMark},
+  setup(){
+    const route = VueRouter.useRoute();
+    const loading = ref(true);
+    const notFound = ref(false);
+    const eq = ref(null);
+    onMounted(async ()=>{
+      try {
+        const res = await fetch('/api/public/equipos/' + route.params.id);
+        if(!res.ok){ notFound.value = true; return; }
+        const data = await res.json();
+        eq.value = {
+          ...data.equipo,
+          especificaciones: data.equipo.especificaciones ? JSON.parse(data.equipo.especificaciones) : {},
+        };
+      } catch(e) {
+        notFound.value = true;
+      } finally {
+        loading.value = false;
+      }
+    });
+    return { loading, notFound, eq, estadoMeta, formatMoney };
+  },
+  template:`
+  <div class="qr-public-page">
+    <div class="qr-public-header">
+      <router-link to="/" class="navbar-brand"><logo-mark/><span>INV<span class="brand-v">-</span>OTI</span></router-link>
+      <router-link to="/login" class="btn btn-outline btn-sm" style="margin-left:auto">Iniciar sesión</router-link>
+    </div>
+    <div class="qr-public-body">
+      <template v-if="loading">
+        <div class="panel"><div class="skeleton sk-line w90" v-for="i in 6" :key="i"></div></div>
+      </template>
+      <template v-else-if="notFound || !eq">
+        <div class="empty-state">
+          <span v-html="$icon('alert')"></span>
+          <div class="et">Equipo no encontrado</div>
+          <div class="es">Este código QR no corresponde a ningún equipo registrado en el inventario.</div>
+        </div>
+      </template>
+      <template v-else>
+        <div class="panel">
+          <div class="detail-title-row" style="margin-bottom:0">
+            <div>
+              <div class="detail-title">{{eq.marca}} {{eq.modelo}}</div>
+              <div class="detail-sub" style="margin-top:6px"><span class="sn-tag">{{eq.sn}}</span> · {{eq.codigoInterno}}</div>
+            </div>
+            <span :class="['badge','lg',estadoMeta(eq.estado).cls]"><span class="bdot"></span>{{estadoMeta(eq.estado).label}}</span>
+          </div>
+          <div class="data-grid" style="margin-top:20px">
+            <div class="data-field"><span class="dl">Tipo</span><span class="dv">{{eq.tipo}}</span></div>
+            <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{eq.ubicacion || '—'}}</span></div>
+            <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{eq.responsable || '—'}}</span></div>
+            <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor || '—'}}</span></div>
+            <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
+            <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion || '—'}}</span></div>
+            <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia || '—'}}</span></div>
+            <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>
+          </div>
+          <div v-if="Object.keys(eq.especificaciones).length" style="margin-top:24px">
+            <div class="panel-sub" style="margin-bottom:10px">ESPECIFICACIONES TÉCNICAS</div>
+            <div class="spec-block">
+              <div v-for="(v,k) in eq.especificaciones" :key="k"><span class="sk">{{k}}:</span> <span class="sv">{{v}}</span></div>
+            </div>
+          </div>
+          <div v-if="eq.notas" style="margin-top:20px">
+            <div class="panel-sub" style="margin-bottom:8px">NOTAS</div>
+            <div style="font-size:13.5px;color:var(--gray-300);line-height:1.6">{{eq.notas}}</div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>`
+};
+
+/* ============================================================
    ROUTER
    ============================================================ */
 const routes = [
   { path:'/', component:LandingPage },
   { path:'/login', component:LoginPage },
   { path:'/registro', component:RegisterPage },
+  { path:'/qr/:id', component:QRPublicView },
   {
     path:'/', component:AppLayout,
     children:[

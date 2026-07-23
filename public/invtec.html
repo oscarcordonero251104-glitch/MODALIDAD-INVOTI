@@ -1721,10 +1721,8 @@ const AppLayout = {
     <div class="main-area" :class="{expanded:ui.sidebarCollapsed}">
       <app-header/>
       <main class="app-content">
-        <router-view v-slot="{ Component }">
-          <transition name="page" mode="out-in">
-            <component :is="Component"/>
-          </transition>
+        <router-view v-slot="{ Component, route }">
+          <component :is="Component" :key="route.path"/>
         </router-view>
       </main>
     </div>
@@ -3061,10 +3059,8 @@ const App = {
   <toast-host v-if="!showSplash"></toast-host>
   <search-modal v-if="ui.searchOpen && !showSplash"></search-modal>
   <q-r-scanner v-if="ui.qrScannerOpen && !showSplash"></q-r-scanner>
-  <router-view v-if="!showSplash" v-slot="{ Component, route }">
-    <transition name="page" mode="out-in">
-      <component :is="Component" :key="route.path"></component>
-    </transition>
+  <router-view v-if="!showSplash" v-slot="{ Component }">
+    <component :is="Component"></component>
   </router-view>`
 };
 

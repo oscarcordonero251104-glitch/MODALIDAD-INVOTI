@@ -2074,15 +2074,17 @@ const EquiposListView = {
             <thead>
               <tr>
                 <th class="ck"><input type="checkbox" class="row-ck" :checked="allSelected" @change="toggleAll"/></th>
-                <th>Nº Serie</th><th>Tipo</th><th>Marca / Modelo</th><th>Estado</th><th>Ubicación</th><th>Responsable</th><th style="text-align:right">Acciones</th>
+                <th>Código</th><th>Marca</th><th>Modelo</th><th>Serie</th><th>Descripción</th><th>Estado</th><th>Ubicación</th><th>Responsable</th><th style="text-align:right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="e in paged" :key="e.id" @click="goDetail(e.id)" style="cursor:pointer">
                 <td class="ck" @click.stop><input type="checkbox" class="row-ck" :checked="selected.includes(e.id)" @change="toggleOne(e.id)"/></td>
+                <td><span class="sn-tag">{{e.codigoInterno || '—'}}</span></td>
+                <td><strong style="color:var(--gray-100)">{{e.marca}}</strong></td>
+                <td>{{e.modelo}}</td>
                 <td><span class="sn-tag">{{e.sn}}</span></td>
                 <td><div class="type-cell"><span class="tic" v-html="$root.typeIconHtml(e.tipo)"></span><span class="tn">{{e.tipo}}</span></div></td>
-                <td><strong style="color:var(--gray-100)">{{e.marca}}</strong> {{e.modelo}}</td>
                 <td><span :class="['badge', estadoMeta(e.estado).cls]"><span class="bdot"></span>{{estadoMeta(e.estado).label}}</span></td>
                 <td style="font-size:12.5px;color:var(--gray-400)">{{e.ubicacion || '—'}}</td>
                 <td style="font-size:12.5px">{{e.responsable}}</td>

@@ -8,7 +8,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  allowedDevOrigins: ["192.168.1.41", "192.168.1.38"],
+  // Comodin: cubre cualquier IP de la red local 192.168.1.x, para que
+  // no se rompa el acceso desde el celular si la PC cambia de IP.
+  allowedDevOrigins: ["192.168.1.*", "192.168.1.41", "192.168.1.38"],
   turbopack: {
     root: path.resolve(__dirname),
   },

@@ -514,7 +514,6 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 .eq-card.st-reparacion{border-left-color:var(--status-repair)}
 .eq-card.st-baja{border-left-color:var(--status-retired)}
 .eq-card.st-almacen{border-left-color:var(--status-storage)}
-.eq-card.st-prestamo{border-left-color:var(--status-loan)}
 .eq-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
 .eq-card-type{display:flex;align-items:center;gap:8px;color:var(--blue-400)}
 .eq-card-type svg{width:18px;height:18px}
@@ -872,7 +871,7 @@ const SEED_DATA = {
     {id:9,tipo:'Monitor',marca:'Dell',modelo:'P2422H',sn:'SN-2024-MN-0001',codigoInterno:'INV-MN-001',estado:'activo',ubicacion:'Ingeniería',responsable:'María García',proveedor:'Dell Technologies',factura:'FAC-2024-0143',costo:3400,fechaAdquisicion:'2024-01-10',fechaGarantia:'2027-01-10',vidaUtil:7,especificaciones:{pantalla:'24" FHD 1920x1080',panel:'IPS',conectividad:'HDMI, DisplayPort, USB-C'},notas:''},
     {id:10,tipo:'Monitor',marca:'Dell',modelo:'U2723QE',sn:'SN-2024-MN-0002',codigoInterno:'INV-MN-002',estado:'activo',ubicacion:'Ingeniería',responsable:'Carlos Pérez',proveedor:'Dell Technologies',factura:'FAC-2024-0201',costo:6800,fechaAdquisicion:'2024-02-05',fechaGarantia:'2027-02-05',vidaUtil:7,especificaciones:{pantalla:'27" 4K UHD 3840x2160',panel:'IPS Black',conectividad:'HDMI, DisplayPort, USB-C 90W'},notas:''},
     {id:11,tipo:'Monitor',marca:'Samsung',modelo:'S27A800',sn:'SN-2024-MN-0003',codigoInterno:'INV-MN-003',estado:'activo',ubicacion:'Finanzas',responsable:'Sofía Méndez',proveedor:'Samsung Argentina',factura:'FAC-2024-0288',costo:5200,fechaAdquisicion:'2024-02-20',fechaGarantia:'2026-02-20',vidaUtil:7,especificaciones:{pantalla:'27" QHD 2560x1440',panel:'IPS',conectividad:'HDMI, DisplayPort'},notas:''},
-    {id:12,tipo:'Monitor',marca:'LG',modelo:'24MP400-B',sn:'SN-2023-MN-0004',codigoInterno:'INV-MN-004',estado:'prestamo',ubicacion:'Cartera y cobro',responsable:'Laura Díaz',proveedor:'LG Electronics',factura:'FAC-2023-0512',costo:2800,fechaAdquisicion:'2023-07-01',fechaGarantia:'2025-07-01',vidaUtil:7,especificaciones:{pantalla:'24" FHD 1920x1080',panel:'IPS',conectividad:'HDMI, VGA'},notas:'En préstamo al área de Recepción.'},
+    {id:12,tipo:'Monitor',marca:'LG',modelo:'24MP400-B',sn:'SN-2023-MN-0004',codigoInterno:'INV-MN-004',estado:'almacen',ubicacion:'Cartera y cobro',responsable:'Laura Díaz',proveedor:'LG Electronics',factura:'FAC-2023-0512',costo:2800,fechaAdquisicion:'2023-07-01',fechaGarantia:'2025-07-01',vidaUtil:7,especificaciones:{pantalla:'24" FHD 1920x1080',panel:'IPS',conectividad:'HDMI, VGA'},notas:''},
     {id:13,tipo:'Impresora',marca:'HP',modelo:'LaserJet Pro M404',sn:'SN-2024-IM-0001',codigoInterno:'INV-IM-001',estado:'activo',ubicacion:'Cartera y cobro',responsable:'Laura Díaz',proveedor:'HP Inc.',factura:'FAC-2024-0067',costo:6800,fechaAdquisicion:'2024-01-18',fechaGarantia:'2026-01-18',vidaUtil:7,especificaciones:{tipo:'Láser monocromo',velocidad:'40 ppm',resolucion:'1200x1200 dpi',conectividad:'USB, Ethernet'},notas:'Mantenimiento correctivo reciente.'},
     {id:14,tipo:'Impresora',marca:'Brother',modelo:'MFC-L8900CDW',sn:'SN-2024-IM-0002',codigoInterno:'INV-IM-002',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Brother LATAM',factura:'FAC-2024-0312',costo:12400,fechaAdquisicion:'2024-03-01',fechaGarantia:'2027-03-01',vidaUtil:7,especificaciones:{tipo:'Láser color',velocidad:'33 ppm',resolucion:'2400x600 dpi',conectividad:'USB, Ethernet, Wi-Fi'},notas:''},
     {id:15,tipo:'Servidor',marca:'Dell',modelo:'PowerEdge R750',sn:'SN-2024-SR-0001',codigoInterno:'INV-SR-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Dell Technologies',factura:'FAC-2024-0001',costo:185000,fechaAdquisicion:'2024-01-05',fechaGarantia:'2029-01-05',vidaUtil:8,especificaciones:{cpu:'2x Intel Xeon Silver 4314',ram:'128GB DDR4 ECC',almacenamiento:'4x 2TB NVMe RAID 10',red:'2x 10GbE'},notas:'Servidor principal de aplicaciones.'},
@@ -1129,7 +1128,6 @@ const estadoMeta = (e) => ({
   reparacion:{label:'En Reparación',cls:'repair'},
   baja:{label:'Dado de Baja',cls:'retired'},
   almacen:{label:'En Almacén',cls:'storage'},
-  prestamo:{label:'En Préstamo',cls:'loan'},
 }[e] || {label:e,cls:'gray'});
 const eqById = (id) => DB.equipos.find(e => String(e.id) === String(id));
 const formatMoney = (n) => '$' + Number(n||0).toLocaleString('es-AR');
@@ -1761,7 +1759,6 @@ const DashboardView = {
         {key:'activo',label:'Activo',color:'var(--status-active)'},
         {key:'almacen',label:'Almacén',color:'var(--status-storage)'},
         {key:'reparacion',label:'Reparación',color:'var(--status-repair)'},
-        {key:'prestamo',label:'Préstamo',color:'var(--status-loan)'},
         {key:'baja',label:'Baja',color:'var(--status-retired)'},
       ];
       return estados.map(s=>{
@@ -1927,7 +1924,7 @@ const EquiposListView = {
     const page = ref(1);
     const perPage = 10;
 
-    const estadoOptions = [{v:'activo',l:'Activo'},{v:'reparacion',l:'Reparación'},{v:'baja',l:'Baja'},{v:'almacen',l:'Almacén'},{v:'prestamo',l:'Préstamo'}];
+    const estadoOptions = [{v:'activo',l:'Activo'},{v:'reparacion',l:'Reparación'},{v:'baja',l:'Baja'},{v:'almacen',l:'Almacén'}];
 
     const addUbicacion = () => {
       const nombre = prompt('Nombre de la nueva ubicación:');
@@ -2336,7 +2333,7 @@ const EquipoFormView = {
     }
 
     const tipoOptions = ['Laptop','Desktop','Monitor','Impresora','Servidor','Switch','Router','UPS'];
-    const estadoOptions = [{v:'activo',l:'Activo'},{v:'almacen',l:'En Almacén'},{v:'reparacion',l:'En Reparación'},{v:'prestamo',l:'En Préstamo'}];
+    const estadoOptions = [{v:'activo',l:'Activo'},{v:'almacen',l:'En Almacén'},{v:'reparacion',l:'En Reparación'},{v:'baja',l:'Baja'}];
     const addUbicacion = () => {
       const nombre = prompt('Nombre de la nueva ubicación:');
       if (nombre && nombre.trim()) {
@@ -2640,7 +2637,7 @@ const ReportesView = {
     onMounted(()=>{ setTimeout(()=> loading.value=false, 400); });
     const reports = [
       {ic:'file',t:'Inventario completo',d:'Exportá el listado completo de equipos con todos los campos: identificación, ubicación, responsable, especificaciones, costos y fechas.', tipo:'inventario'},
-      {ic:'shield',t:'Equipos por estado',d:'Distribución y detalle filtrado por estado operativo. Identificá equipos activos, en reparación, almacén, préstamo o dados de baja.', tipo:'estado'},
+      {ic:'shield',t:'Equipos por estado',d:'Distribución y detalle filtrado por estado operativo. Identificá equipos activos, en reparación, en almacén o dados de baja.', tipo:'estado'},
       {ic:'dollar',t:'Reporte de depreciación',d:'Cálculo de valor depreciado por equipo según vida útil y fecha de adquisición. Incluye valor en libros y depreciación acumulada.', tipo:'depreciacion'},
     ];
     const generating = ref(null);

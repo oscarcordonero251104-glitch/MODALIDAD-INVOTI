@@ -2320,7 +2320,6 @@ const EquipoDetailView = {
           <svg class="qr-svg" :viewBox="'0 0 '+qr.size+' '+qr.size" width="200" height="200">
             <rect v-for="(c,i) in qr.cells" :key="i" :x="i % qr.size" :y="Math.floor(i / qr.size)" width="1" height="1" :class="{b:c}"/>
           </svg>
-          <div class="qr-desc">Código QR generado automáticamente al registrar el equipo <strong style="color:var(--gray-300)">{{eq.sn}}</strong>. Es único para este equipo: al escanearlo (con el escáner de la app o con la cámara de cualquier celular) muestra directamente sus especificaciones completas, sin pedir inicio de sesión.</div>
           <div class="security-notice" v-if="isLocalhost" style="margin-top:0;max-width:420px">
             <span v-html="$icon('alert')"></span>
             <div class="security-notice-text">
@@ -3201,8 +3200,7 @@ const QRPublicView = {
   template:`
   <div class="qr-public-page">
     <div class="qr-public-header">
-      <router-link to="/" class="navbar-brand"><logo-mark/><span>INV<span class="brand-v">-</span>OTI</span></router-link>
-      <router-link to="/login" class="btn btn-outline btn-sm" style="margin-left:auto">Iniciar sesión</router-link>
+      <span class="navbar-brand"><logo-mark/><span>INV<span class="brand-v">-</span>OTI</span></span>
     </div>
     <div class="qr-public-body">
       <template v-if="loading">

@@ -2168,8 +2168,8 @@ const EquipoDetailView = {
     watch(()=>DB.ready, (r)=>{ if(r) loading.value=false; });
 
     const eq = computed(() => eqById(route.params.id) || DB.equipos[0] || {});
-    const movs = computed(() => DB.movimientos.filter(m=>m.equipoId===eq.value.id));
-    const mts = computed(() => DB.mantenimientos.filter(m=>m.equipoId===eq.value.id));
+    const movs = computed(() => eq.value.movimientos || []);
+    const mts = computed(() => eq.value.mantenimientos || []);
     const activeTab = ref(route.query.tab==='qr' ? 'qr' : 'info');
     const movIcon = (t) => ({asignacion:'user',transferencia:'move',reparacion:'wrench',retorno:'checkCircle'}[t]||'info');
     const printLabel = () => toast.info('Enviando etiqueta a impresora…');
@@ -2209,7 +2209,59 @@ const EquipoDetailView = {
       }, 'image/png');
       toast.success('QR descargado');
     };
-    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR, goBack:()=>router.push('/equipos') };
+
+    const tipoMovOptions = [
+      {v:'asignacion',l:'Asignación'},
+      {v:'transferencia',l:'Transferencia'},
+      {v:'reparacion',l:'Envío a reparación'},
+      {v:'retorno',l:'Retorno de reparación'},
+    ];
+    const movModalOpen = ref(false);
+    const movSaving = ref(false);
+    const todayStr = () => new Date().toISOString().slice(0,10);
+    const movForm = reactive({tipo:'asignacion', titulo:'', fecha:todayStr(), responsable:'', descripcion:''});
+    const movErrors = computed(()=>{
+      const e = {};
+      if(!movForm.tipo) e.tipo = 'Requerido';
+      if(!movForm.titulo.trim()) e.titulo = 'Requerido';
+      if(!movForm.fecha) e.fecha = 'Requerido';
+      return e;
+    });
+    const openMovModal = () => {
+      Object.assign(movForm, {tipo:'asignacion', titulo:'', fecha:todayStr(), responsable:'', descripcion:''});
+      movModalOpen.value = true;
+    };
+    const closeMovModal = () => { movModalOpen.value = false; };
+    const submitMovimiento = async () => {
+      if(Object.keys(movErrors.value).length){ toast.error('Completá los campos obligatorios'); return; }
+      movSaving.value = true;
+      try {
+        const token = localStorage.getItem('inv-oti-token');
+        const res = await fetch('/api/equipos/'+eq.value.id+'/movimientos', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({
+            tipo: movForm.tipo, titulo: movForm.titulo.trim(), fecha: movForm.fecha,
+            responsable: movForm.responsable.trim()||null, descripcion: movForm.descripcion.trim()||null,
+          }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || 'Error al registrar el movimiento');
+        if(!eq.value.movimientos) eq.value.movimientos = [];
+        eq.value.movimientos.unshift(data.movimiento);
+        toast.success('Movimiento registrado');
+        movModalOpen.value = false;
+        activeTab.value = 'mov';
+      } catch(e) {
+        toast.error(e.message);
+      } finally {
+        movSaving.value = false;
+      }
+    };
+
+    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR,
+      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, openMovModal, closeMovModal, submitMovimiento,
+      goBack:()=>router.push('/equipos') };
   },
   template:`
   <div>
@@ -2222,7 +2274,7 @@ const EquipoDetailView = {
         </div>
         <div class="detail-actions">
           <router-link :to="'/equipos/'+eq.id+'/editar'" class="btn btn-outline"><span class="ic" v-html="$icon('edit')"></span>Editar</router-link>
-          <button class="btn btn-primary"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
+          <button class="btn btn-primary" @click="openMovModal"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
         </div>
       </div>
     </div>
@@ -2333,6 +2385,51 @@ const EquipoDetailView = {
         </div>
       </div>
     </template>
+
+    <div class="modal-overlay" v-if="movModalOpen" @click.self="closeMovModal">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h3>Registrar movimiento</h3>
+          <button class="modal-close" @click="closeMovModal" v-html="$icon('x')"></button>
+        </div>
+        <form @submit.prevent="submitMovimiento">
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tipo <span class="req">*</span></label>
+                <select class="form-select" :class="{err:movErrors.tipo}" v-model="movForm.tipo">
+                  <option v-for="t in tipoMovOptions" :key="t.v" :value="t.v">{{t.l}}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fecha <span class="req">*</span></label>
+                <input class="form-input" :class="{err:movErrors.fecha}" type="date" v-model="movForm.fecha"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Título <span class="req">*</span></label>
+              <input class="form-input" :class="{err:movErrors.titulo}" v-model="movForm.titulo" placeholder="Ej: Asignación a Carlos López"/>
+              <div class="form-error" v-if="movErrors.titulo">{{movErrors.titulo}}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Responsable <span class="opt">(opcional)</span></label>
+              <input class="form-input" v-model="movForm.responsable" placeholder="Nombre del responsable"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descripción <span class="opt">(opcional)</span></label>
+              <textarea class="form-textarea" v-model="movForm.descripcion" placeholder="Detalle del movimiento…"></textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px">
+            <button type="button" class="btn btn-outline" @click="closeMovModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary" :disabled="movSaving">
+              <span v-if="movSaving" class="btn-loading"><span class="spinner"></span> Guardando…</span>
+              <span v-else>Registrar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>`
 };
 

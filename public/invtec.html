@@ -2330,13 +2330,17 @@ const EquipoFormView = {
     });
     watch(existing, (val) => {
       if(!val) return;
+      const espKeys = val.especificaciones ? Object.keys(val.especificaciones) : [];
+      const espText = (espKeys.length===1 && espKeys[0]==='Especificaciones')
+        ? val.especificaciones.Especificaciones
+        : (espKeys.length ? JSON.stringify(val.especificaciones,null,2) : '');
       Object.assign(form, {
         tipo:val.tipo, marca:val.marca, modelo:val.modelo,
         sn:val.sn, codigoInterno:val.codigoInterno, estado:val.estado,
         ubicacion:val.ubicacion,
         responsable:val.responsable, proveedor:val.proveedor, factura:val.factura,
         costo:val.costo, fechaAdquisicion:val.fechaAdquisicion, fechaGarantia:val.fechaGarantia,
-        vidaUtil:val.vidaUtil, especificaciones:JSON.stringify(val.especificaciones,null,2), notas:val.notas||'',
+        vidaUtil:val.vidaUtil, especificaciones:espText, notas:val.notas||'',
         foto:val.foto||''
       });
     }, {immediate:true});
@@ -2388,7 +2392,15 @@ const EquipoFormView = {
     const saving = ref(false);
     const buildData = () => {
       let espec = {};
-      try { espec = form.especificaciones ? JSON.parse(form.especificaciones) : {}; } catch(e){ espec = {}; }
+      const rawEspec = (form.especificaciones||'').trim();
+      if(rawEspec){
+        try {
+          const parsed = JSON.parse(rawEspec);
+          espec = (parsed && typeof parsed==='object' && !Array.isArray(parsed)) ? parsed : {Especificaciones: rawEspec};
+        } catch(e){
+          espec = {Especificaciones: rawEspec};
+        }
+      }
       return {
         tipo:form.tipo, marca:form.marca, modelo:form.modelo, sn:form.sn,
         codigoInterno:form.codigoInterno || nextCodigoFor(form.tipo),
@@ -2567,8 +2579,9 @@ const EquipoFormView = {
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-head"><div class="panel-title">Especificaciones y extras</div></div>
         <div class="form-group">
-          <label class="form-label">Especificaciones técnicas <span class="opt">(formato JSON)</span></label>
-          <textarea class="form-textarea" v-model="form.especificaciones" placeholder='{"cpu":"","ram":"","disco":"","pantalla":""}'></textarea>
+          <label class="form-label">Especificaciones técnicas <span class="opt">(opcional)</span></label>
+          <textarea class="form-textarea" v-model="form.especificaciones" placeholder='Podés escribir texto libre (ej: Intel i5, 8GB RAM, 256GB SSD) o formato JSON: {"cpu":"","ram":""}'></textarea>
+          <div class="form-hint">Texto libre o JSON — lo que escribas se guarda igual.</div>
         </div>
         <div class="form-group">
           <label class="form-label">Foto del equipo</label>

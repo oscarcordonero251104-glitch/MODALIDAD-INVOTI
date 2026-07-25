@@ -23,11 +23,13 @@ export async function GET(
         proveedor: true,
         factura: true,
         costo: true,
+        moneda: true,
         fechaAdquisicion: true,
         fechaGarantia: true,
         vidaUtil: true,
         especificaciones: true,
         notas: true,
+        foto: true,
       },
     })
     if (!equipo) {

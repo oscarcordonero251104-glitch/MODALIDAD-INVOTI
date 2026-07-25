@@ -21,6 +21,17 @@ function calcDepreciacion(costo: number, vidaUtil: number, fechaAdquisicion: str
 
 const estadoLabels: Record<string, string> = { activo: 'Activo', reparacion: 'En reparación', baja: 'Dado de baja', almacen: 'En almacén', prestamo: 'En préstamo' }
 
+const monedaSymbol = (m: string | null | undefined) => (m === 'USD' ? '$' : 'C$')
+const money = (n: number, m: string | null | undefined) => monedaSymbol(m) + (n || 0).toLocaleString('es-AR')
+function sumaPorMoneda(equipos: any[]): Record<string, number> {
+  const sums: Record<string, number> = {}
+  for (const eq of equipos) {
+    const m = eq.moneda || 'NIO'
+    sums[m] = (sums[m] || 0) + (eq.costo || 0)
+  }
+  return sums
+}
+
 export async function GET(request: Request) {
   try {
     requireAuth(request)
@@ -117,6 +128,7 @@ async function generarExcelInventario(equipos: any[]): Promise<Buffer> {
     { header: 'Proveedor', key: 'proveedor', width: 20 },
     { header: 'Factura', key: 'factura', width: 16 },
     { header: 'Costo', key: 'costo', width: 14 },
+    { header: 'Moneda', key: 'moneda', width: 10 },
     { header: 'F. Adquisición', key: 'fechaAdq', width: 16 },
     { header: 'F. Garantía', key: 'fechaGar', width: 16 },
     { header: 'Vida Útil', key: 'vidaUtil', width: 12 },
@@ -141,6 +153,7 @@ async function generarExcelInventario(equipos: any[]): Promise<Buffer> {
       proveedor: eq.proveedor || '—',
       factura: eq.factura || '—',
       costo: eq.costo || 0,
+      moneda: eq.moneda || 'NIO',
       fechaAdq: eq.fechaAdquisicion || '—',
       fechaGar: eq.fechaGarantia || '—',
       vidaUtil: eq.vidaUtil ? eq.vidaUtil + ' años' : '—',
@@ -167,7 +180,7 @@ async function generarPDFInventario(equipos: any[]): Promise<Buffer> {
     estadoLabels[eq.estado] || eq.estado,
     eq.ubicacion || '—',
     eq.responsable || '—',
-    '$' + (eq.costo || 0).toLocaleString('es-AR'),
+    money(eq.costo, eq.moneda),
   ])
 
   autoTable(doc, {
@@ -199,7 +212,8 @@ async function generarExcelPorEstado(equipos: any[]): Promise<Buffer> {
   ws.columns = [
     { header: 'Estado', key: 'estado', width: 16 },
     { header: 'Cantidad', key: 'cantidad', width: 12 },
-    { header: 'Costo Total', key: 'costoTotal', width: 16 },
+    { header: 'Costo Total (NIO)', key: 'costoTotalNio', width: 18 },
+    { header: 'Costo Total (USD)', key: 'costoTotalUsd', width: 18 },
   ]
 
   const headerRow = ws.getRow(1)
@@ -217,6 +231,7 @@ async function generarExcelPorEstado(equipos: any[]): Promise<Buffer> {
     { header: 'Ubicación', key: 'ubicacion', width: 24 },
     { header: 'Responsable', key: 'responsable', width: 20 },
     { header: 'Costo', key: 'costo', width: 14 },
+    { header: 'Moneda', key: 'moneda', width: 10 },
   ]
 
   const detailHeader = summaryWs.getRow(1)
@@ -224,8 +239,8 @@ async function generarExcelPorEstado(equipos: any[]): Promise<Buffer> {
   detailHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
 
   for (const [estado, eqs] of Object.entries(agrupados)) {
-    const costoTotal = eqs.reduce((sum, e) => sum + (e.costo || 0), 0)
-    ws.addRow({ estado: estadoLabels[estado] || estado, cantidad: eqs.length, costoTotal })
+    const sums = sumaPorMoneda(eqs)
+    ws.addRow({ estado: estadoLabels[estado] || estado, cantidad: eqs.length, costoTotalNio: sums.NIO || 0, costoTotalUsd: sums.USD || 0 })
     for (const eq of eqs) {
       summaryWs.addRow({
         codigo: eq.codigoInterno || '—',
@@ -237,6 +252,7 @@ async function generarExcelPorEstado(equipos: any[]): Promise<Buffer> {
         ubicacion: eq.ubicacion || '—',
         responsable: eq.responsable || '—',
         costo: eq.costo || 0,
+        moneda: eq.moneda || 'NIO',
       })
     }
   }
@@ -269,7 +285,7 @@ async function generarPDFPorEstado(equipos: any[]): Promise<Buffer> {
       eq.tipo + ' ' + eq.marca + ' ' + eq.modelo,
       eq.sn,
       eq.responsable || '—',
-      '$' + (eq.costo || 0).toLocaleString('es-AR'),
+      money(eq.costo, eq.moneda),
     ])
 
     autoTable(doc, {
@@ -303,6 +319,7 @@ async function generarExcelDepreciacion(equipos: any[]): Promise<Buffer> {
     { header: 'Equipo', key: 'equipo', width: 32 },
     { header: 'S/N', key: 'sn', width: 22 },
     { header: 'Costo Original', key: 'costo', width: 16 },
+    { header: 'Moneda', key: 'moneda', width: 10 },
     { header: 'F. Adquisición', key: 'fechaAdq', width: 16 },
     { header: 'Vida Útil', key: 'vidaUtil', width: 12 },
     { header: 'Depreciación', key: 'depreciacion', width: 16 },
@@ -314,18 +331,21 @@ async function generarExcelDepreciacion(equipos: any[]): Promise<Buffer> {
   headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
   headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }
 
-  let totalCosto = 0, totalDepr = 0, totalLibros = 0
+  const totales: Record<string, { costo: number; depr: number; libros: number }> = {}
 
   for (const eq of equipos) {
     const dep = calcDepreciacion(eq.costo, eq.vidaUtil, eq.fechaAdquisicion)
-    totalCosto += eq.costo || 0
-    totalDepr += dep.depreciacion
-    totalLibros += dep.valorLibros
+    const m = eq.moneda || 'NIO'
+    if (!totales[m]) totales[m] = { costo: 0, depr: 0, libros: 0 }
+    totales[m].costo += eq.costo || 0
+    totales[m].depr += dep.depreciacion
+    totales[m].libros += dep.valorLibros
     ws.addRow({
       codigo: eq.codigoInterno || '—',
       equipo: eq.tipo + ' ' + eq.marca + ' ' + eq.modelo,
       sn: eq.sn,
       costo: eq.costo || 0,
+      moneda: m,
       fechaAdq: eq.fechaAdquisicion || '—',
       vidaUtil: eq.vidaUtil ? eq.vidaUtil + ' años' : '—',
       depreciacion: dep.depreciacion,
@@ -334,19 +354,22 @@ async function generarExcelDepreciacion(equipos: any[]): Promise<Buffer> {
     })
   }
 
-  const totalRow = ws.addRow({
-    codigo: '',
-    equipo: 'TOTALES',
-    sn: '',
-    costo: totalCosto,
-    fechaAdq: '',
-    vidaUtil: '',
-    depreciacion: totalDepr,
-    valorLibros: totalLibros,
-    porcentaje: '',
-  })
-  totalRow.font = { bold: true }
-  totalRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } }
+  for (const [m, t] of Object.entries(totales)) {
+    const totalRow = ws.addRow({
+      codigo: '',
+      equipo: 'TOTALES (' + m + ')',
+      sn: '',
+      costo: t.costo,
+      moneda: m,
+      fechaAdq: '',
+      vidaUtil: '',
+      depreciacion: t.depr,
+      valorLibros: t.libros,
+      porcentaje: '',
+    })
+    totalRow.font = { bold: true }
+    totalRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } }
+  }
 
   const buffer = await wb.xlsx.writeBuffer()
   return new Uint8Array(buffer)
@@ -365,11 +388,11 @@ async function generarPDFDepreciacion(equipos: any[]): Promise<Buffer> {
       eq.codigoInterno || '—',
       eq.tipo + ' ' + eq.marca + ' ' + eq.modelo,
       eq.sn,
-      '$' + (eq.costo || 0).toLocaleString('es-AR'),
+      money(eq.costo, eq.moneda),
       eq.fechaAdquisicion || '—',
       (eq.vidaUtil || 0) + ' años',
-      '$' + dep.depreciacion.toLocaleString('es-AR'),
-      '$' + dep.valorLibros.toLocaleString('es-AR'),
+      money(dep.depreciacion, eq.moneda),
+      money(dep.valorLibros, eq.moneda),
       dep.porcentaje + '%',
     ]
   })

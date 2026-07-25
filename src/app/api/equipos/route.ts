@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   try {
     requireAuth(request)
     const body = await request.json()
-    const { tipo, marca, modelo, sn, codigoInterno, estado, ubicacion, responsable, proveedor, factura, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas } = body
+    const { tipo, marca, modelo, sn, codigoInterno, estado, ubicacion, responsable, proveedor, factura, costo, moneda, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto } = body
 
     if (!tipo || !marca || !modelo || !sn) {
       return NextResponse.json({ error: 'Tipo, marca, modelo y número de serie son obligatorios' }, { status: 400 })
@@ -52,11 +52,13 @@ export async function POST(request: Request) {
         proveedor: proveedor || null,
         factura: factura || null,
         costo: costo || 0,
+        moneda: moneda === 'USD' ? 'USD' : 'NIO',
         fechaAdquisicion: fechaAdquisicion || null,
         fechaGarantia: fechaGarantia || null,
         vidaUtil: vidaUtil || 5,
         especificaciones: especificaciones ? JSON.stringify(especificaciones) : null,
         notas: notas || null,
+        foto: foto || null,
       },
     })
     return NextResponse.json({ equipo })

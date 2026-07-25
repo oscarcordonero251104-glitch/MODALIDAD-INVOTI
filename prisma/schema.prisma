@@ -34,11 +34,13 @@ model Equipo {
   proveedor         String?
   factura           String?
   costo             Float    @default(0)
+  moneda            String   @default("NIO") // NIO (Córdobas) | USD (Dólares)
   fechaAdquisicion  String?
   fechaGarantia     String?
   vidaUtil          Int      @default(5)
   especificaciones  String?  // JSON string
   notas             String?
+  foto              String?  // imagen en base64 (data URL)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

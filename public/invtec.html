@@ -883,21 +883,6 @@ const SEED_DATA = {
     {id:17,tipo:'Router',marca:'Cisco',modelo:'ISR 4331',sn:'FDO2415P0M3',codigoInterno:'INV-RT-001',estado:'almacen',ubicacion:'Almacén',responsable:'—',proveedor:'Cisco Systems',factura:'FAC-2023-0312',costo:32000,fechaAdquisicion:'2023-05-20',fechaGarantia:'2026-05-20',vidaUtil:8,especificaciones:{cpu:'Multi-core 2.1GHz',interfaces:'3x WAN, 2x LAN',throughput:'300 Mbps'},notas:'Backup de router principal.'},
     {id:18,tipo:'UPS',marca:'APC',modelo:'Smart-UPS 1500VA',sn:'5A2415T33172',codigoInterno:'INV-UPS-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Schneider Electric',factura:'FAC-2024-0045',costo:8900,fechaAdquisicion:'2024-01-12',fechaGarantia:'2027-01-12',vidaUtil:6,especificaciones:{capacidad:'1500VA / 1000W',salidas:'8x NEMA 5-15R',tecnologia:'Line-Interactive'},notas:'Protección del servidor principal.'},
   ],
-  movimientos: [
-    {id:1,equipoId:1,tipo:'asignacion',titulo:'Asignación a María García',fecha:'2024-01-15',descripcion:'Entrega inicial al departamento de Sistemas',responsable:'Carlos López'},
-    {id:2,equipoId:1,tipo:'transferencia',titulo:'Transferencia de Piso 1 a Piso 2',fecha:'2024-06-20',descripcion:'Cambio de oficina por reestructuración organizativa',responsable:'María García'},
-    {id:3,equipoId:1,tipo:'reparacion',titulo:'Envío a reparación',fecha:'2024-09-10',descripcion:'Teclado con teclas sueltas, reemplazo necesario bajo garantía',responsable:'Ana Martínez'},
-    {id:4,equipoId:1,tipo:'retorno',titulo:'Retorno de reparación',fecha:'2024-09-18',descripcion:'Teclado reemplazado, funcionamiento verificado por técnico',responsable:'Ana Martínez'},
-    {id:5,equipoId:15,tipo:'asignacion',titulo:'Instalación en Data Center',fecha:'2024-01-06',descripcion:'Puesta en producción como servidor de aplicaciones principal',responsable:'Carlos López'},
-    {id:6,equipoId:4,tipo:'asignacion',titulo:'Asignación a Luis Ramírez',fecha:'2024-03-20',descripcion:'Entrega para desarrollo de aplicaciones móviles',responsable:'María García'},
-  ],
-  mantenimientos: [
-    {id:1,equipoId:1,tipo:'Preventivo',descripcion:'Limpieza general de ventiladores, actualización de BIOS, verificación de estado de SSD con CrystalDiskInfo',fechaProgramada:'2024-03-15',fechaEjecucion:'2024-03-15',tecnico:'Carlos López',estado:'Completado',costo:0},
-    {id:2,equipoId:13,tipo:'Correctivo',descripcion:'Reemplazo de fuser unit (unidad fusora) y calibración de bandeja de alimentación',fechaProgramada:'2024-09-10',fechaEjecucion:'2024-09-12',tecnico:'Ana Martínez',estado:'Completado',costo:85},
-    {id:3,equipoId:15,tipo:'Preventivo',descripcion:'Limpieza de filtros, revisión de ventiladores redundantes, actualización de firmware iDRAC y revisión de RAID',fechaProgramada:'2025-02-01',fechaEjecucion:null,tecnico:'Carlos López',estado:'Pendiente',costo:0},
-    {id:4,equipoId:3,tipo:'Correctivo',descripcion:'Reemplazo de teclado completo y revisión de hinges de pantalla',fechaProgramada:'2025-01-12',fechaEjecucion:null,tecnico:'Ana Martínez',estado:'En proceso',costo:120},
-    {id:5,equipoId:16,tipo:'Preventivo',descripcion:'Actualización de IOS XE, revisión de puertos PoE, backup de configuración a TFTP',fechaProgramada:'2025-01-20',fechaEjecucion:null,tecnico:'Carlos López',estado:'Pendiente',costo:0},
-  ],
   usuarios: [
     {id:1,nombre:'María García',email:'maria.garcia@empresa.com',rol:'admin',estado:'activo',ultimoAcceso:'2025-01-15 09:42'},
     {id:2,nombre:'Carlos López',email:'carlos.lopez@empresa.com',rol:'tecnico',estado:'activo',ultimoAcceso:'2025-01-14 17:23'},
@@ -933,14 +918,15 @@ dexie.version(1).stores({
 /* Reactive in-memory store hydrated from IndexedDB */
 const DB = reactive({
   equipos: [],
-  movimientos: [...SEED_DATA.movimientos],
-  mantenimientos: [...SEED_DATA.mantenimientos],
+  mantenimientos: [],
   usuarios: [...SEED_DATA.usuarios],
   ubicaciones: [...SEED_DATA.ubicaciones],
   actividades: [...SEED_DATA.actividades],
   alertas: [...SEED_DATA.alertas],
   ready: false,
   loadError: false,
+  mantenimientosReady: false,
+  mantenimientosError: false,
 });
 
 const syncState = reactive({
@@ -966,6 +952,26 @@ async function initDB() {
         DB.ready = true;
         DB.loadError = true;
         toast.error('No se pudo cargar el inventario. Revisá tu conexión y probá de nuevo.');
+      }
+    }
+  }
+}
+
+async function initMantenimientos() {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const data = await apiFetch('/api/mantenimientos');
+      DB.mantenimientos = data.mantenimientos;
+      DB.mantenimientosReady = true;
+      DB.mantenimientosError = false;
+      return;
+    } catch(e) {
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 700 * attempt));
+      } else {
+        DB.mantenimientosReady = true;
+        DB.mantenimientosError = true;
       }
     }
   }
@@ -1726,8 +1732,9 @@ const AppLayout = {
       };
       window.addEventListener('keydown', onKey);
       onBeforeUnmount(()=>window.removeEventListener('keydown', onKey));
-      // Cargar equipos desde la API cuando el usuario está autenticado
+      // Cargar equipos y mantenimientos desde la API cuando el usuario está autenticado
       initDB();
+      initMantenimientos();
     });
     return { ui };
   },
@@ -2744,14 +2751,15 @@ const EquipoFormView = {
    ============================================================ */
 const MantenimientosView = {
   setup(){
-    const loading = ref(true);
-    onMounted(()=>{ setTimeout(()=> loading.value=false, 500); });
+    const loading = ref(!DB.mantenimientosReady);
+    watch(()=>DB.mantenimientosReady, (r)=>{ if(r) loading.value=false; });
+    const retryLoad = () => initMantenimientos();
     const tab = ref('pendientes');
-    const counts = {
+    const counts = computed(()=>({
       pendientes: DB.mantenimientos.filter(m=>m.estado==='Pendiente').length,
       completados: DB.mantenimientos.filter(m=>m.estado==='Completado').length,
       todos: DB.mantenimientos.length,
-    };
+    }));
     const filtered = computed(()=>{
       if(tab.value==='todos') return DB.mantenimientos;
       if(tab.value==='completados') return DB.mantenimientos.filter(m=>m.estado==='Completado');
@@ -2759,9 +2767,58 @@ const MantenimientosView = {
     });
     const stCls = (s) => 'st-'+s.split(' ')[0];
     const stBadge = (s) => ({'Pendiente':'repair','En proceso':'blue','Completado':'active','Cancelado':'retired'}[s]||'gray');
-    const eqName = (id) => { const e=eqById(id); return e ? e.marca+' '+e.modelo : '—'; };
-    const eqSn = (id) => { const e=eqById(id); return e ? e.sn : '—'; };
-    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney };
+    const eqName = (m) => m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '—';
+    const eqSn = (m) => m.equipo ? m.equipo.sn : '—';
+
+    const tipoOptions = ['Preventivo','Correctivo'];
+    const estadoOptions = ['Pendiente','En proceso','Completado','Cancelado'];
+    const modalOpen = ref(false);
+    const saving = ref(false);
+    const todayStr = () => new Date().toISOString().slice(0,10);
+    const form = reactive({equipoId:'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente', costo:''});
+    const errors = computed(()=>{
+      const e = {};
+      if(!form.equipoId) e.equipoId = 'Requerido';
+      if(!form.descripcion.trim()) e.descripcion = 'Requerido';
+      if(!form.fechaProgramada) e.fechaProgramada = 'Requerido';
+      if(!form.tecnico.trim()) e.tecnico = 'Requerido';
+      return e;
+    });
+    const openModal = () => {
+      Object.assign(form, {equipoId:'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente', costo:''});
+      modalOpen.value = true;
+    };
+    const closeModal = () => { modalOpen.value = false; };
+    const submitForm = async () => {
+      if(Object.keys(errors.value).length){ toast.error('Completá los campos obligatorios'); return; }
+      saving.value = true;
+      try {
+        const token = localStorage.getItem('inv-oti-token');
+        const res = await fetch('/api/mantenimientos', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({
+            equipoId: form.equipoId, tipo: form.tipo, descripcion: form.descripcion.trim(),
+            fechaProgramada: form.fechaProgramada, fechaEjecucion: form.fechaEjecucion || null,
+            tecnico: form.tecnico.trim(), estado: form.estado, costo: Number(form.costo)||0,
+          }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || 'Error al programar el mantenimiento');
+        DB.mantenimientos.unshift(data.mantenimiento);
+        const eqRef = DB.equipos.find(e=>e.id===form.equipoId);
+        if(eqRef){ if(!eqRef.mantenimientos) eqRef.mantenimientos=[]; eqRef.mantenimientos.unshift(data.mantenimiento); }
+        toast.success('Mantenimiento programado');
+        modalOpen.value = false;
+      } catch(e) {
+        toast.error(e.message);
+      } finally {
+        saving.value = false;
+      }
+    };
+
+    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, DB, retryLoad,
+      tipoOptions, estadoOptions, modalOpen, saving, form, errors, openModal, closeModal, submitForm };
   },
   template:`
   <div>
@@ -2771,7 +2828,7 @@ const MantenimientosView = {
         <div class="page-subtitle">Gestión de mantenimientos preventivos y correctivos</div>
       </div>
       <div class="page-actions">
-        <button class="btn btn-primary"><span class="ic" v-html="$icon('plus')"></span>Programar mantenimiento</button>
+        <button class="btn btn-primary" @click="openModal"><span class="ic" v-html="$icon('plus')"></span>Programar mantenimiento</button>
       </div>
     </div>
 
@@ -2790,12 +2847,20 @@ const MantenimientosView = {
     </template>
 
     <template v-else>
-      <div v-if="filtered.length">
+      <div v-if="DB.mantenimientosError" class="panel">
+        <div class="empty-state">
+          <span v-html="$icon('alert')"></span>
+          <div class="et">No se pudo conectar con el servidor</div>
+          <div class="es">Revisá tu conexión de red y volvé a intentar.</div>
+          <button class="btn btn-primary" style="margin-top:16px" @click="retryLoad">Reintentar</button>
+        </div>
+      </div>
+      <div v-else-if="filtered.length">
         <div v-for="m in filtered" :key="m.id" :class="['mt-card', stCls(m.estado)]">
           <div class="mt-head">
             <div>
-              <div class="mt-title">{{m.tipo}} · {{eqName(m.equipoId)}}</div>
-              <div class="mt-eq"><span class="sn-tag">{{eqSn(m.equipoId)}}</span></div>
+              <div class="mt-title">{{m.tipo}} · {{eqName(m)}}</div>
+              <div class="mt-eq"><span class="sn-tag">{{eqSn(m)}}</span></div>
             </div>
             <span :class="['badge', stBadge(m.estado)]"><span class="bdot"></span>{{m.estado}}</span>
           </div>
@@ -2816,6 +2881,74 @@ const MantenimientosView = {
         </div>
       </div>
     </template>
+
+    <div class="modal-overlay" v-if="modalOpen" @click.self="closeModal">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h3>Programar mantenimiento</h3>
+          <button class="modal-close" @click="closeModal" v-html="$icon('x')"></button>
+        </div>
+        <form @submit.prevent="submitForm">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">Equipo <span class="req">*</span></label>
+              <select class="form-select" :class="{err:errors.equipoId}" v-model="form.equipoId">
+                <option value="">Seleccionar…</option>
+                <option v-for="e in DB.equipos" :key="e.id" :value="e.id">{{e.marca}} {{e.modelo}} — {{e.sn}}</option>
+              </select>
+              <div class="form-error" v-if="errors.equipoId">{{errors.equipoId}}</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tipo <span class="req">*</span></label>
+                <select class="form-select" v-model="form.tipo">
+                  <option v-for="t in tipoOptions" :key="t" :value="t">{{t}}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Estado</label>
+                <select class="form-select" v-model="form.estado">
+                  <option v-for="s in estadoOptions" :key="s" :value="s">{{s}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descripción <span class="req">*</span></label>
+              <textarea class="form-textarea" :class="{err:errors.descripcion}" v-model="form.descripcion" placeholder="Detalle del mantenimiento…"></textarea>
+              <div class="form-error" v-if="errors.descripcion">{{errors.descripcion}}</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Fecha programada <span class="req">*</span></label>
+                <input class="form-input" :class="{err:errors.fechaProgramada}" type="date" v-model="form.fechaProgramada"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fecha de ejecución <span class="opt">(opcional)</span></label>
+                <input class="form-input" type="date" v-model="form.fechaEjecucion"/>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Técnico <span class="req">*</span></label>
+                <input class="form-input" :class="{err:errors.tecnico}" v-model="form.tecnico" placeholder="Nombre del técnico"/>
+                <div class="form-error" v-if="errors.tecnico">{{errors.tecnico}}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Costo <span class="opt">(opcional)</span></label>
+                <input class="form-input" type="number" min="0" v-model="form.costo" placeholder="0"/>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px">
+            <button type="button" class="btn btn-outline" @click="closeModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              <span v-if="saving" class="btn-loading"><span class="spinner"></span> Guardando…</span>
+              <span v-else>Programar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>`
 };
 

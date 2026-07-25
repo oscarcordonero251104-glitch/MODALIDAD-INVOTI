@@ -2417,7 +2417,7 @@ const EquipoFormView = {
         <div class="panel-head"><div class="panel-title">Datos básicos</div></div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Tipo <span class="req">*</span></label>
+            <label class="form-label">Descripción <span class="req">*</span></label>
             <select class="form-select" :class="{err:errors.tipo}" v-model="form.tipo">
               <option value="">Seleccionar…</option>
               <option v-for="t in tipoOptions" :key="t" :value="t">{{t}}</option>

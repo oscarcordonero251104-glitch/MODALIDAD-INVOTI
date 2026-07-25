@@ -27,7 +27,7 @@ model Equipo {
   marca             String
   modelo            String
   sn                String   @unique
-  codigoInterno     String?
+  codigoInterno     String?  @unique
   estado            String   @default("activo") // activo, reparacion, baja, almacen, prestamo
   ubicacion         String?
   responsable       String?

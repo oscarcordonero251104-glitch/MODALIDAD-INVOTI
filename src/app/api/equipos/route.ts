@@ -35,6 +35,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Ya existe un equipo con ese número de serie' }, { status: 409 })
     }
 
+    if (codigoInterno) {
+      const existingCodigo = await db.equipo.findUnique({ where: { codigoInterno } })
+      if (existingCodigo) {
+        return NextResponse.json({ error: 'Ya existe un equipo con ese código interno' }, { status: 409 })
+      }
+    }
+
     const equipo = await db.equipo.create({
       data: {
         tipo, marca, modelo, sn,

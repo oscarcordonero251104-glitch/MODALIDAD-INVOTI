@@ -42,6 +42,20 @@ export async function PUT(
       return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 })
     }
 
+    if (sn) {
+      const existingSn = await db.equipo.findUnique({ where: { sn } })
+      if (existingSn && existingSn.id !== id) {
+        return NextResponse.json({ error: 'Ya existe un equipo con ese número de serie' }, { status: 409 })
+      }
+    }
+
+    if (codigoInterno) {
+      const existingCodigo = await db.equipo.findUnique({ where: { codigoInterno } })
+      if (existingCodigo && existingCodigo.id !== id) {
+        return NextResponse.json({ error: 'Ya existe un equipo con ese código interno' }, { status: 409 })
+      }
+    }
+
     const equipo = await db.equipo.update({
       where: { id },
       data: {

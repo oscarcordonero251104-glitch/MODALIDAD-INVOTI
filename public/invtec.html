@@ -2361,9 +2361,18 @@ const EquipoFormView = {
     });
     const isValid = computed(()=> !form.tipo || !form.marca || !form.modelo || !form.sn ? false : Object.keys(errors.value).length===0);
     const snToUpper = () => { form.sn = form.sn.toUpperCase(); };
-    const genCodigo = () => {
+    const nextCodigoFor = (tipo) => {
       const tipoMap = {Laptop:'LP',Desktop:'DT',Monitor:'MN',Impresora:'IM',Servidor:'SR',Switch:'SW',Router:'RT',UPS:'UP'};
-      form.codigoInterno = 'INV-'+(tipoMap[form.tipo]||'EQ')+'-'+String(Math.floor(Math.random()*900+100));
+      const base = 'INV-'+(tipoMap[tipo]||'EQ')+'-';
+      const used = new Set(DB.equipos.map(e=>e.codigoInterno).filter(Boolean));
+      if(isEdit.value && existing.value) used.delete(existing.value.codigoInterno);
+      let n = 1;
+      let code;
+      do { code = base+String(n).padStart(3,'0'); n++; } while(used.has(code));
+      return code;
+    };
+    const genCodigo = () => {
+      form.codigoInterno = nextCodigoFor(form.tipo);
       toast.info('Código generado');
     };
 
@@ -2373,7 +2382,7 @@ const EquipoFormView = {
       try { espec = form.especificaciones ? JSON.parse(form.especificaciones) : {}; } catch(e){ espec = {}; }
       return {
         tipo:form.tipo, marca:form.marca, modelo:form.modelo, sn:form.sn,
-        codigoInterno:form.codigoInterno || ('INV-'+form.tipo.slice(0,2).toUpperCase()+'-'+Math.floor(Math.random()*900+100)),
+        codigoInterno:form.codigoInterno || nextCodigoFor(form.tipo),
         estado:form.estado,
         ubicacion:form.ubicacion||'',
         responsable:form.responsable||'—', proveedor:form.proveedor||'', factura:form.factura||'',

@@ -35,7 +35,7 @@ export async function PUT(
     requireAuth(request)
     const { id } = await params
     const body = await request.json()
-    const { tipo, marca, modelo, sn, codigoInterno, estado, ubicacion, responsable, proveedor, factura, costo, moneda, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto } = body
+    const { tipo, marca, modelo, sn, codigoInterno, estado, ubicacion, responsable, proveedor, factura, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto } = body
 
     const existing = await db.equipo.findUnique({ where: { id } })
     if (!existing) {
@@ -67,7 +67,6 @@ export async function PUT(
         proveedor: proveedor || null,
         factura: factura || null,
         costo: costo || 0,
-        moneda: moneda === 'USD' ? 'USD' : 'NIO',
         fechaAdquisicion: fechaAdquisicion || null,
         fechaGarantia: fechaGarantia || null,
         vidaUtil: vidaUtil || 5,

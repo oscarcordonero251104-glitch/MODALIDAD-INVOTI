@@ -864,24 +864,24 @@ const typeIcon = (tipo) => {
    ============================================================ */
 const SEED_DATA = {
   equipos: [
-    {id:1,tipo:'Laptop',marca:'Dell',modelo:'Latitude 5440',sn:'8H3XCP2',codigoInterno:'INV-LP-001',estado:'activo',ubicacion:'Ingeniería',responsable:'María García',proveedor:'Dell Technologies',factura:'FAC-2024-0142',costo:16500,moneda:'NIO',fechaAdquisicion:'2024-01-10',fechaGarantia:'2027-01-10',vidaUtil:5,especificaciones:{cpu:'Intel Core i7-1365U',ram:'16GB DDR5',ssd:'512GB NVMe',pantalla:'14" FHD 1920x1080'},notas:'Equipo principal del área de sistemas.'},
-    {id:2,tipo:'Laptop',marca:'Lenovo',modelo:'ThinkPad X1 Carbon Gen 11',sn:'PF4YB82Q',codigoInterno:'INV-LP-002',estado:'activo',ubicacion:'Ingeniería',responsable:'Carlos Pérez',proveedor:'Lenovo Argentina',factura:'FAC-2024-0089',costo:24000,moneda:'NIO',fechaAdquisicion:'2024-02-05',fechaGarantia:'2027-02-05',vidaUtil:5,especificaciones:{cpu:'Intel Core i7-1365U',ram:'32GB DDR5',ssd:'1TB NVMe',pantalla:'14" WUXGA 1920x1200'},notas:''},
-    {id:3,tipo:'Laptop',marca:'HP',modelo:'EliteBook 840 G10',sn:'5CD3412XRV',codigoInterno:'INV-LP-003',estado:'reparacion',ubicacion:'Almacén',responsable:'Ana Torres',proveedor:'HP Inc.',factura:'FAC-2024-0231',costo:17500,moneda:'NIO',fechaAdquisicion:'2024-01-22',fechaGarantia:'2026-01-22',vidaUtil:5,especificaciones:{cpu:'Intel Core i5-1335U',ram:'16GB DDR5',ssd:'512GB NVMe',pantalla:'14" FHD 1920x1080'},notas:'En reparación: reemplazo de teclado.'},
-    {id:4,tipo:'Laptop',marca:'Apple',modelo:'MacBook Pro 14 M3',sn:'FVFXC3QMQ1GH',codigoInterno:'INV-LP-004',estado:'activo',ubicacion:'Ingeniería',responsable:'Luis Ramírez',proveedor:'Apple Store',factura:'FAC-2024-0356',costo:38900,moneda:'NIO',fechaAdquisicion:'2024-03-15',fechaGarantia:'2027-03-15',vidaUtil:5,especificaciones:{cpu:'Apple M3 Pro',ram:'18GB Unified',ssd:'512GB SSD',pantalla:'14" Liquid Retina XDR'},notas:''},
-    {id:5,tipo:'Laptop',marca:'Acer',modelo:'TravelMate P4 TMP414',sn:'NXB0AAL00234',codigoInterno:'INV-LP-005',estado:'almacen',ubicacion:'Almacén',responsable:'—',proveedor:'Acer LATAM',factura:'FAC-2023-0788',costo:9200,moneda:'NIO',fechaAdquisicion:'2023-08-12',fechaGarantia:'2025-08-12',vidaUtil:5,especificaciones:{cpu:'Intel Core i3-1215U',ram:'8GB DDR4',ssd:'256GB NVMe',pantalla:'14" FHD'},notas:'Disponible para reasignación.'},
-    {id:6,tipo:'Desktop',marca:'HP',modelo:'ProDesk 600 G9',sn:'MXL34209XK',codigoInterno:'INV-DT-001',estado:'activo',ubicacion:'Finanzas',responsable:'Sofía Méndez',proveedor:'HP Inc.',factura:'FAC-2024-0178',costo:12400,moneda:'NIO',fechaAdquisicion:'2024-01-30',fechaGarantia:'2027-01-30',vidaUtil:5,especificaciones:{cpu:'Intel Core i5-13500',ram:'16GB DDR5',ssd:'512GB NVMe'},notas:''},
-    {id:7,tipo:'Desktop',marca:'Dell',modelo:'OptiPlex 7010',sn:'7HXKP24',codigoInterno:'INV-DT-002',estado:'activo',ubicacion:'Recursos humanos',responsable:'Pedro Castillo',proveedor:'Dell Technologies',factura:'FAC-2024-0099',costo:13200,moneda:'NIO',fechaAdquisicion:'2024-02-10',fechaGarantia:'2027-02-10',vidaUtil:5,especificaciones:{cpu:'Intel Core i7-13700',ram:'16GB DDR5',ssd:'512GB NVMe'},notas:''},
-    {id:8,tipo:'Desktop',marca:'Lenovo',modelo:'ThinkCentre M90a',sn:'MJ0FAB3C',codigoInterno:'INV-DT-003',estado:'baja',ubicacion:'Almacén',responsable:'—',proveedor:'Lenovo Argentina',factura:'FAC-2021-0455',costo:11800,moneda:'NIO',fechaAdquisicion:'2021-06-15',fechaGarantia:'2024-06-15',vidaUtil:5,especificaciones:{cpu:'Intel Core i5-10400',ram:'8GB DDR4',ssd:'256GB SATA'},notas:'Dado de baja por obsolescencia.'},
-    {id:9,tipo:'Monitor',marca:'Dell',modelo:'P2422H',sn:'9YXH2R3',codigoInterno:'INV-MN-001',estado:'activo',ubicacion:'Ingeniería',responsable:'María García',proveedor:'Dell Technologies',factura:'FAC-2024-0143',costo:3400,moneda:'NIO',fechaAdquisicion:'2024-01-10',fechaGarantia:'2027-01-10',vidaUtil:7,especificaciones:{pantalla:'24" FHD 1920x1080',panel:'IPS',conectividad:'HDMI, DisplayPort, USB-C'},notas:''},
-    {id:10,tipo:'Monitor',marca:'Dell',modelo:'U2723QE',sn:'4KDCP23',codigoInterno:'INV-MN-002',estado:'activo',ubicacion:'Ingeniería',responsable:'Carlos Pérez',proveedor:'Dell Technologies',factura:'FAC-2024-0201',costo:6800,moneda:'NIO',fechaAdquisicion:'2024-02-05',fechaGarantia:'2027-02-05',vidaUtil:7,especificaciones:{pantalla:'27" 4K UHD 3840x2160',panel:'IPS Black',conectividad:'HDMI, DisplayPort, USB-C 90W'},notas:''},
-    {id:11,tipo:'Monitor',marca:'Samsung',modelo:'S27A800',sn:'0524THXC00891',codigoInterno:'INV-MN-003',estado:'activo',ubicacion:'Finanzas',responsable:'Sofía Méndez',proveedor:'Samsung Argentina',factura:'FAC-2024-0288',costo:5200,moneda:'NIO',fechaAdquisicion:'2024-02-20',fechaGarantia:'2026-02-20',vidaUtil:7,especificaciones:{pantalla:'27" QHD 2560x1440',panel:'IPS',conectividad:'HDMI, DisplayPort'},notas:''},
-    {id:12,tipo:'Monitor',marca:'LG',modelo:'24MP400-B',sn:'310KDPX0123',codigoInterno:'INV-MN-004',estado:'almacen',ubicacion:'Cartera y cobro',responsable:'Laura Díaz',proveedor:'LG Electronics',factura:'FAC-2023-0512',costo:2800,moneda:'NIO',fechaAdquisicion:'2023-07-01',fechaGarantia:'2025-07-01',vidaUtil:7,especificaciones:{pantalla:'24" FHD 1920x1080',panel:'IPS',conectividad:'HDMI, VGA'},notas:''},
-    {id:13,tipo:'Impresora',marca:'HP',modelo:'LaserJet Pro M404',sn:'VNC3K21084',codigoInterno:'INV-IM-001',estado:'activo',ubicacion:'Cartera y cobro',responsable:'Laura Díaz',proveedor:'HP Inc.',factura:'FAC-2024-0067',costo:6800,moneda:'NIO',fechaAdquisicion:'2024-01-18',fechaGarantia:'2026-01-18',vidaUtil:7,especificaciones:{tipo:'Láser monocromo',velocidad:'40 ppm',resolucion:'1200x1200 dpi',conectividad:'USB, Ethernet'},notas:'Mantenimiento correctivo reciente.'},
-    {id:14,tipo:'Impresora',marca:'Brother',modelo:'MFC-L8900CDW',sn:'E75121M6J384',codigoInterno:'INV-IM-002',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Brother LATAM',factura:'FAC-2024-0312',costo:12400,moneda:'NIO',fechaAdquisicion:'2024-03-01',fechaGarantia:'2027-03-01',vidaUtil:7,especificaciones:{tipo:'Láser color',velocidad:'33 ppm',resolucion:'2400x600 dpi',conectividad:'USB, Ethernet, Wi-Fi'},notas:''},
-    {id:15,tipo:'Servidor',marca:'Dell',modelo:'PowerEdge R750',sn:'GHXK2344',codigoInterno:'INV-SR-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Dell Technologies',factura:'FAC-2024-0001',costo:185000,moneda:'NIO',fechaAdquisicion:'2024-01-05',fechaGarantia:'2029-01-05',vidaUtil:8,especificaciones:{cpu:'2x Intel Xeon Silver 4314',ram:'128GB DDR4 ECC',almacenamiento:'4x 2TB NVMe RAID 10',red:'2x 10GbE'},notas:'Servidor principal de aplicaciones.'},
-    {id:16,tipo:'Switch',marca:'Cisco',modelo:'Catalyst 9300',sn:'FCW2405L0K2',codigoInterno:'INV-SW-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Cisco Systems',factura:'FAC-2024-0007',costo:48600,moneda:'NIO',fechaAdquisicion:'2024-01-08',fechaGarantia:'2029-01-08',vidaUtil:10,especificaciones:{puertos:'48x 1GbE + 4x 10GbE',stacking:'StackWise-480',poe:'PoE+ 740W'},notas:'Core de red principal.'},
-    {id:17,tipo:'Router',marca:'Cisco',modelo:'ISR 4331',sn:'FDO2415P0M3',codigoInterno:'INV-RT-001',estado:'almacen',ubicacion:'Almacén',responsable:'—',proveedor:'Cisco Systems',factura:'FAC-2023-0312',costo:32000,moneda:'NIO',fechaAdquisicion:'2023-05-20',fechaGarantia:'2026-05-20',vidaUtil:8,especificaciones:{cpu:'Multi-core 2.1GHz',interfaces:'3x WAN, 2x LAN',throughput:'300 Mbps'},notas:'Backup de router principal.'},
-    {id:18,tipo:'UPS',marca:'APC',modelo:'Smart-UPS 1500VA',sn:'5A2415T33172',codigoInterno:'INV-UPS-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Schneider Electric',factura:'FAC-2024-0045',costo:8900,moneda:'NIO',fechaAdquisicion:'2024-01-12',fechaGarantia:'2027-01-12',vidaUtil:6,especificaciones:{capacidad:'1500VA / 1000W',salidas:'8x NEMA 5-15R',tecnologia:'Line-Interactive'},notas:'Protección del servidor principal.'},
+    {id:1,tipo:'Laptop',marca:'Dell',modelo:'Latitude 5440',sn:'8H3XCP2',codigoInterno:'INV-LP-001',estado:'activo',ubicacion:'Ingeniería',responsable:'María García',proveedor:'Dell Technologies',factura:'FAC-2024-0142',costo:16500,fechaAdquisicion:'2024-01-10',fechaGarantia:'2027-01-10',vidaUtil:5,especificaciones:{cpu:'Intel Core i7-1365U',ram:'16GB DDR5',ssd:'512GB NVMe',pantalla:'14" FHD 1920x1080'},notas:'Equipo principal del área de sistemas.'},
+    {id:2,tipo:'Laptop',marca:'Lenovo',modelo:'ThinkPad X1 Carbon Gen 11',sn:'PF4YB82Q',codigoInterno:'INV-LP-002',estado:'activo',ubicacion:'Ingeniería',responsable:'Carlos Pérez',proveedor:'Lenovo Argentina',factura:'FAC-2024-0089',costo:24000,fechaAdquisicion:'2024-02-05',fechaGarantia:'2027-02-05',vidaUtil:5,especificaciones:{cpu:'Intel Core i7-1365U',ram:'32GB DDR5',ssd:'1TB NVMe',pantalla:'14" WUXGA 1920x1200'},notas:''},
+    {id:3,tipo:'Laptop',marca:'HP',modelo:'EliteBook 840 G10',sn:'5CD3412XRV',codigoInterno:'INV-LP-003',estado:'reparacion',ubicacion:'Almacén',responsable:'Ana Torres',proveedor:'HP Inc.',factura:'FAC-2024-0231',costo:17500,fechaAdquisicion:'2024-01-22',fechaGarantia:'2026-01-22',vidaUtil:5,especificaciones:{cpu:'Intel Core i5-1335U',ram:'16GB DDR5',ssd:'512GB NVMe',pantalla:'14" FHD 1920x1080'},notas:'En reparación: reemplazo de teclado.'},
+    {id:4,tipo:'Laptop',marca:'Apple',modelo:'MacBook Pro 14 M3',sn:'FVFXC3QMQ1GH',codigoInterno:'INV-LP-004',estado:'activo',ubicacion:'Ingeniería',responsable:'Luis Ramírez',proveedor:'Apple Store',factura:'FAC-2024-0356',costo:38900,fechaAdquisicion:'2024-03-15',fechaGarantia:'2027-03-15',vidaUtil:5,especificaciones:{cpu:'Apple M3 Pro',ram:'18GB Unified',ssd:'512GB SSD',pantalla:'14" Liquid Retina XDR'},notas:''},
+    {id:5,tipo:'Laptop',marca:'Acer',modelo:'TravelMate P4 TMP414',sn:'NXB0AAL00234',codigoInterno:'INV-LP-005',estado:'almacen',ubicacion:'Almacén',responsable:'—',proveedor:'Acer LATAM',factura:'FAC-2023-0788',costo:9200,fechaAdquisicion:'2023-08-12',fechaGarantia:'2025-08-12',vidaUtil:5,especificaciones:{cpu:'Intel Core i3-1215U',ram:'8GB DDR4',ssd:'256GB NVMe',pantalla:'14" FHD'},notas:'Disponible para reasignación.'},
+    {id:6,tipo:'Desktop',marca:'HP',modelo:'ProDesk 600 G9',sn:'MXL34209XK',codigoInterno:'INV-DT-001',estado:'activo',ubicacion:'Finanzas',responsable:'Sofía Méndez',proveedor:'HP Inc.',factura:'FAC-2024-0178',costo:12400,fechaAdquisicion:'2024-01-30',fechaGarantia:'2027-01-30',vidaUtil:5,especificaciones:{cpu:'Intel Core i5-13500',ram:'16GB DDR5',ssd:'512GB NVMe'},notas:''},
+    {id:7,tipo:'Desktop',marca:'Dell',modelo:'OptiPlex 7010',sn:'7HXKP24',codigoInterno:'INV-DT-002',estado:'activo',ubicacion:'Recursos humanos',responsable:'Pedro Castillo',proveedor:'Dell Technologies',factura:'FAC-2024-0099',costo:13200,fechaAdquisicion:'2024-02-10',fechaGarantia:'2027-02-10',vidaUtil:5,especificaciones:{cpu:'Intel Core i7-13700',ram:'16GB DDR5',ssd:'512GB NVMe'},notas:''},
+    {id:8,tipo:'Desktop',marca:'Lenovo',modelo:'ThinkCentre M90a',sn:'MJ0FAB3C',codigoInterno:'INV-DT-003',estado:'baja',ubicacion:'Almacén',responsable:'—',proveedor:'Lenovo Argentina',factura:'FAC-2021-0455',costo:11800,fechaAdquisicion:'2021-06-15',fechaGarantia:'2024-06-15',vidaUtil:5,especificaciones:{cpu:'Intel Core i5-10400',ram:'8GB DDR4',ssd:'256GB SATA'},notas:'Dado de baja por obsolescencia.'},
+    {id:9,tipo:'Monitor',marca:'Dell',modelo:'P2422H',sn:'9YXH2R3',codigoInterno:'INV-MN-001',estado:'activo',ubicacion:'Ingeniería',responsable:'María García',proveedor:'Dell Technologies',factura:'FAC-2024-0143',costo:3400,fechaAdquisicion:'2024-01-10',fechaGarantia:'2027-01-10',vidaUtil:7,especificaciones:{pantalla:'24" FHD 1920x1080',panel:'IPS',conectividad:'HDMI, DisplayPort, USB-C'},notas:''},
+    {id:10,tipo:'Monitor',marca:'Dell',modelo:'U2723QE',sn:'4KDCP23',codigoInterno:'INV-MN-002',estado:'activo',ubicacion:'Ingeniería',responsable:'Carlos Pérez',proveedor:'Dell Technologies',factura:'FAC-2024-0201',costo:6800,fechaAdquisicion:'2024-02-05',fechaGarantia:'2027-02-05',vidaUtil:7,especificaciones:{pantalla:'27" 4K UHD 3840x2160',panel:'IPS Black',conectividad:'HDMI, DisplayPort, USB-C 90W'},notas:''},
+    {id:11,tipo:'Monitor',marca:'Samsung',modelo:'S27A800',sn:'0524THXC00891',codigoInterno:'INV-MN-003',estado:'activo',ubicacion:'Finanzas',responsable:'Sofía Méndez',proveedor:'Samsung Argentina',factura:'FAC-2024-0288',costo:5200,fechaAdquisicion:'2024-02-20',fechaGarantia:'2026-02-20',vidaUtil:7,especificaciones:{pantalla:'27" QHD 2560x1440',panel:'IPS',conectividad:'HDMI, DisplayPort'},notas:''},
+    {id:12,tipo:'Monitor',marca:'LG',modelo:'24MP400-B',sn:'310KDPX0123',codigoInterno:'INV-MN-004',estado:'almacen',ubicacion:'Cartera y cobro',responsable:'Laura Díaz',proveedor:'LG Electronics',factura:'FAC-2023-0512',costo:2800,fechaAdquisicion:'2023-07-01',fechaGarantia:'2025-07-01',vidaUtil:7,especificaciones:{pantalla:'24" FHD 1920x1080',panel:'IPS',conectividad:'HDMI, VGA'},notas:''},
+    {id:13,tipo:'Impresora',marca:'HP',modelo:'LaserJet Pro M404',sn:'VNC3K21084',codigoInterno:'INV-IM-001',estado:'activo',ubicacion:'Cartera y cobro',responsable:'Laura Díaz',proveedor:'HP Inc.',factura:'FAC-2024-0067',costo:6800,fechaAdquisicion:'2024-01-18',fechaGarantia:'2026-01-18',vidaUtil:7,especificaciones:{tipo:'Láser monocromo',velocidad:'40 ppm',resolucion:'1200x1200 dpi',conectividad:'USB, Ethernet'},notas:'Mantenimiento correctivo reciente.'},
+    {id:14,tipo:'Impresora',marca:'Brother',modelo:'MFC-L8900CDW',sn:'E75121M6J384',codigoInterno:'INV-IM-002',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Brother LATAM',factura:'FAC-2024-0312',costo:12400,fechaAdquisicion:'2024-03-01',fechaGarantia:'2027-03-01',vidaUtil:7,especificaciones:{tipo:'Láser color',velocidad:'33 ppm',resolucion:'2400x600 dpi',conectividad:'USB, Ethernet, Wi-Fi'},notas:''},
+    {id:15,tipo:'Servidor',marca:'Dell',modelo:'PowerEdge R750',sn:'GHXK2344',codigoInterno:'INV-SR-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Dell Technologies',factura:'FAC-2024-0001',costo:185000,fechaAdquisicion:'2024-01-05',fechaGarantia:'2029-01-05',vidaUtil:8,especificaciones:{cpu:'2x Intel Xeon Silver 4314',ram:'128GB DDR4 ECC',almacenamiento:'4x 2TB NVMe RAID 10',red:'2x 10GbE'},notas:'Servidor principal de aplicaciones.'},
+    {id:16,tipo:'Switch',marca:'Cisco',modelo:'Catalyst 9300',sn:'FCW2405L0K2',codigoInterno:'INV-SW-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Cisco Systems',factura:'FAC-2024-0007',costo:48600,fechaAdquisicion:'2024-01-08',fechaGarantia:'2029-01-08',vidaUtil:10,especificaciones:{puertos:'48x 1GbE + 4x 10GbE',stacking:'StackWise-480',poe:'PoE+ 740W'},notas:'Core de red principal.'},
+    {id:17,tipo:'Router',marca:'Cisco',modelo:'ISR 4331',sn:'FDO2415P0M3',codigoInterno:'INV-RT-001',estado:'almacen',ubicacion:'Almacén',responsable:'—',proveedor:'Cisco Systems',factura:'FAC-2023-0312',costo:32000,fechaAdquisicion:'2023-05-20',fechaGarantia:'2026-05-20',vidaUtil:8,especificaciones:{cpu:'Multi-core 2.1GHz',interfaces:'3x WAN, 2x LAN',throughput:'300 Mbps'},notas:'Backup de router principal.'},
+    {id:18,tipo:'UPS',marca:'APC',modelo:'Smart-UPS 1500VA',sn:'5A2415T33172',codigoInterno:'INV-UPS-001',estado:'activo',ubicacion:'Administración',responsable:'Carlos López',proveedor:'Schneider Electric',factura:'FAC-2024-0045',costo:8900,fechaAdquisicion:'2024-01-12',fechaGarantia:'2027-01-12',vidaUtil:6,especificaciones:{capacidad:'1500VA / 1000W',salidas:'8x NEMA 5-15R',tecnologia:'Line-Interactive'},notas:'Protección del servidor principal.'},
   ],
   movimientos: [
     {id:1,equipoId:1,tipo:'asignacion',titulo:'Asignación a María García',fecha:'2024-01-15',descripcion:'Entrega inicial al departamento de Sistemas',responsable:'Carlos López'},
@@ -1134,9 +1134,7 @@ const estadoMeta = (e) => ({
   almacen:{label:'En Almacén',cls:'storage'},
 }[e] || {label:e,cls:'gray'});
 const eqById = (id) => DB.equipos.find(e => String(e.id) === String(id));
-const monedaSymbol = (m) => m==='USD' ? '$' : 'C$';
-const monedaLabel = (m) => m==='USD' ? 'Dólares (USD)' : 'Córdobas (NIO)';
-const formatMoney = (n, m) => monedaSymbol(m) + Number(n||0).toLocaleString('es-AR');
+const formatMoney = (n) => 'C$' + Number(n||0).toLocaleString('es-AR');
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const formatNum = (n) => Number(n||0).toLocaleString('es-AR');
 
@@ -1745,18 +1743,13 @@ const DashboardView = {
     const totalEquipos = computed(()=> DB.equipos.length);
     const activos = computed(()=> DB.equipos.filter(e=>e.estado==='activo').length);
     const enReparacion = computed(()=> DB.equipos.filter(e=>e.estado==='reparacion').length);
-    const costoTotalLabel = computed(()=>{
-      const sums = {};
-      DB.equipos.forEach(e => { const m = e.moneda||'NIO'; sums[m] = (sums[m]||0) + (e.costo||0); });
-      const parts = Object.entries(sums).filter(([,v])=>v>0).map(([m,v])=>formatMoney(v,m));
-      return parts.length ? parts.join(' + ') : formatMoney(0,'NIO');
-    });
+    const costoTotal = computed(()=> DB.equipos.reduce((s,e)=>s+e.costo,0));
 
     const kpis = computed(()=>[
       {label:'Total Equipos',value:formatNum(totalEquipos.value),icon:'monitor',cls:'',trend:'+2 este mes',trendCls:'up'},
       {label:'Activos',value:formatNum(activos.value),icon:'checkCircle',cls:'green',trend:Math.round(activos.value/totalEquipos.value*100)+'% del total',trendCls:'up'},
       {label:'En Reparación',value:formatNum(enReparacion.value),icon:'wrench',cls:'amber',trend:'Requieren atención',trendCls:'down'},
-      {label:'Costo Total',value:costoTotalLabel.value,icon:'dollar',cls:'blue',trend:'Valor en inventario',trendCls:''},
+      {label:'Costo Total',value:formatMoney(costoTotal.value),icon:'dollar',cls:'blue',trend:'Valor en inventario',trendCls:''},
     ]);
 
     const barData = computed(()=>{
@@ -2237,7 +2230,7 @@ const EquipoDetailView = {
           <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{eq.responsable}}</span></div>
           <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor}}</span></div>
           <div class="data-field"><span class="dl">Factura</span><span class="dv mono">{{eq.factura}}</span></div>
-          <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo, eq.moneda)}}</span></div>
+          <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
           <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion}}</span></div>
           <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia}}</span></div>
           <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>
@@ -2332,7 +2325,7 @@ const EquipoFormView = {
     const form = reactive({
       tipo:'',marca:'',modelo:'',sn:'',codigoInterno:'',estado:'activo',
       ubicacion:'',responsable:'',proveedor:'',factura:'',
-      costo:'',moneda:'NIO',fechaAdquisicion:'',fechaGarantia:'',vidaUtil:5,
+      costo:'',fechaAdquisicion:'',fechaGarantia:'',vidaUtil:5,
       especificaciones:'',notas:'',foto:''
     });
     watch(existing, (val) => {
@@ -2342,7 +2335,7 @@ const EquipoFormView = {
         sn:val.sn, codigoInterno:val.codigoInterno, estado:val.estado,
         ubicacion:val.ubicacion,
         responsable:val.responsable, proveedor:val.proveedor, factura:val.factura,
-        costo:val.costo, moneda:val.moneda||'NIO', fechaAdquisicion:val.fechaAdquisicion, fechaGarantia:val.fechaGarantia,
+        costo:val.costo, fechaAdquisicion:val.fechaAdquisicion, fechaGarantia:val.fechaGarantia,
         vidaUtil:val.vidaUtil, especificaciones:JSON.stringify(val.especificaciones,null,2), notas:val.notas||'',
         foto:val.foto||''
       });
@@ -2402,7 +2395,7 @@ const EquipoFormView = {
         estado:form.estado,
         ubicacion:form.ubicacion||'',
         responsable:form.responsable||'—', proveedor:form.proveedor||'', factura:form.factura||'',
-        costo:Number(form.costo)||0, moneda:form.moneda==='USD'?'USD':'NIO', fechaAdquisicion:form.fechaAdquisicion||'', fechaGarantia:form.fechaGarantia||'',
+        costo:Number(form.costo)||0, fechaAdquisicion:form.fechaAdquisicion||'', fechaGarantia:form.fechaGarantia||'',
         vidaUtil:Number(form.vidaUtil)||5, especificaciones:espec, notas:form.notas||'',
         foto:form.foto||''
       };
@@ -2426,7 +2419,6 @@ const EquipoFormView = {
       } catch(e){ saving.value=false; toast.error('Error al guardar: '+e.message); }
     };
 
-    const monedaOptions = [{v:'NIO',l:'C$ Córdobas (NIO)'},{v:'USD',l:'$ Dólares (USD)'}];
     const fileInput = ref(null);
     const photoError = ref('');
     const isDragging = ref(false);
@@ -2451,7 +2443,7 @@ const EquipoFormView = {
     const onDrop = (e) => { isDragging.value=false; readImageFile(e.dataTransfer.files && e.dataTransfer.files[0]); };
     const removePhoto = (e) => { e.stopPropagation(); form.foto=''; photoError.value=''; };
 
-    return { DB, form, isEdit, tipoOptions, estadoOptions, monedaOptions, addUbicacion, errors, isValid, snToUpper, genCodigo, save, saving,
+    return { DB, form, isEdit, tipoOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, genCodigo, save, saving,
       fileInput, photoError, isDragging, triggerFileInput, onFileSelect, onDrop, removePhoto,
       goBack:()=>router.back() };
   },
@@ -2550,14 +2542,9 @@ const EquipoFormView = {
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Costo</label>
-            <div style="display:flex;gap:8px">
-              <input class="form-input" :class="{err:errors.costo}" type="number" min="0" v-model="form.costo" placeholder="0" style="flex:1"/>
-              <select class="form-select" v-model="form.moneda" style="width:100px;flex-shrink:0">
-                <option v-for="m in monedaOptions" :key="m.v" :value="m.v">{{m.v}}</option>
-              </select>
-            </div>
+            <input class="form-input" :class="{err:errors.costo}" type="number" min="0" v-model="form.costo" placeholder="0"/>
             <div class="form-error" v-if="errors.costo">{{errors.costo}}</div>
-            <div class="form-hint" v-else>{{form.moneda==='USD' ? '$ Dólares estadounidenses' : 'C$ Córdobas nicaragüenses'}}</div>
+            <div class="form-hint" v-else>C$ Córdobas nicaragüenses</div>
           </div>
           <div class="form-group">
             <label class="form-label">Vida útil (años)</label>
@@ -3071,7 +3058,7 @@ const QRScanner = {
               <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{foundEquipo.ubicacion || '—'}}</span></div>
               <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{foundEquipo.responsable}}</span></div>
               <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{foundEquipo.proveedor || '—'}}</span></div>
-              <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(foundEquipo.costo, foundEquipo.moneda)}}</span></div>
+              <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(foundEquipo.costo)}}</span></div>
               <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{foundEquipo.fechaAdquisicion || '—'}}</span></div>
               <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{foundEquipo.fechaGarantia || '—'}}</span></div>
               <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{foundEquipo.vidaUtil}} años</span></div>
@@ -3197,7 +3184,7 @@ const QRPublicView = {
             <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{eq.ubicacion || '—'}}</span></div>
             <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{eq.responsable || '—'}}</span></div>
             <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor || '—'}}</span></div>
-            <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo, eq.moneda)}}</span></div>
+            <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
             <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion || '—'}}</span></div>
             <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia || '—'}}</span></div>
             <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>

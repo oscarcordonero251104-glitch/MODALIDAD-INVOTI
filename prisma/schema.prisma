@@ -33,8 +33,7 @@ model Equipo {
   responsable       String?
   proveedor         String?
   factura           String?
-  costo             Float    @default(0)
-  moneda            String   @default("NIO") // NIO (Córdobas) | USD (Dólares)
+  costo             Float    @default(0) // en cordobas (NIO)
   fechaAdquisicion  String?
   fechaGarantia     String?
   vidaUtil          Int      @default(5)

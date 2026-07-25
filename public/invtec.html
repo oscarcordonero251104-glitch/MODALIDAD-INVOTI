@@ -940,6 +940,7 @@ const DB = reactive({
   actividades: [...SEED_DATA.actividades],
   alertas: [...SEED_DATA.alertas],
   ready: false,
+  loadError: false,
 });
 
 const syncState = reactive({
@@ -950,12 +951,23 @@ const syncState = reactive({
 });
 
 async function initDB() {
-  try {
-    const data = await apiFetch('/api/equipos');
-    DB.equipos = data.equipos.map(transformEquipo);
-    DB.ready = true;
-  } catch(e) {
-    DB.ready = true;
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const data = await apiFetch('/api/equipos');
+      DB.equipos = data.equipos.map(transformEquipo);
+      DB.ready = true;
+      DB.loadError = false;
+      return;
+    } catch(e) {
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 700 * attempt));
+      } else {
+        DB.ready = true;
+        DB.loadError = true;
+        toast.error('No se pudo cargar el inventario. Revisá tu conexión y probá de nuevo.');
+      }
+    }
   }
 }
 
@@ -1033,7 +1045,10 @@ async function apiFetch(url, options = {}) {
     if (res.status === 401 && !url.includes('/auth/')) {
       localStorage.removeItem('inv-oti-token');
       localStorage.removeItem('invtec_user');
-      if (location.hash !== '#/login') location.hash = '#/login';
+      if (location.hash !== '#/login') {
+        toast.error('Tu sesión expiró o no es válida. Iniciá sesión de nuevo.');
+        location.hash = '#/login';
+      }
     }
     throw new Error(data.error || 'Error en la petición');
   }
@@ -1920,6 +1935,7 @@ const EquiposListView = {
     const router = VueRouter.useRouter();
     const loading = ref(true);
     onMounted(()=>{ setTimeout(()=> loading.value=false, 600); });
+    const retryLoad = () => initDB();
 
     const viewMode = ref('table');
     const filters = reactive({descripcion:'',estados:[],ubicacion:'',fechaDesde:'',fechaHasta:''});
@@ -1993,7 +2009,7 @@ const EquiposListView = {
     return { DB, loading, viewMode, filters, estadoOptions, addUbicacion,
       filtered, paged, totalPages, page, perPage, activeFilterTags, removeTag, clearFilters,
       toggleEstado, allSelected, selected, toggleAll, toggleOne,
-      exportData, goNew, goDetail, editEq, delEq, goToPage, estadoMeta };
+      exportData, goNew, goDetail, editEq, delEq, goToPage, estadoMeta, retryLoad };
   },
   template:`
   <div>
@@ -2061,7 +2077,16 @@ const EquiposListView = {
     </template>
 
     <template v-else>
-      <div v-if="!filtered.length" class="panel">
+      <div v-if="DB.loadError" class="panel">
+        <div class="empty-state">
+          <span v-html="$icon('alert')"></span>
+          <div class="et">No se pudo conectar con el servidor</div>
+          <div class="es">Revisá tu conexión de red y volvé a intentar.</div>
+          <button class="btn btn-primary" style="margin-top:16px" @click="retryLoad">Reintentar</button>
+        </div>
+      </div>
+
+      <div v-else-if="!filtered.length" class="panel">
         <div class="empty-state">
           <span v-html="$icon('inbox')"></span>
           <div class="et">No se encontraron equipos</div>
@@ -2772,11 +2797,13 @@ const UsuariosView = {
     const loading = ref(true);
     const users = ref([]);
     const tab = ref('todos');
+    const loadError = ref(false);
     const loadUsers = async () => {
       try {
         const data = await apiFetch('/api/usuarios');
         users.value = data.users;
-      } catch(e) { toast.error('Error al cargar usuarios'); }
+        loadError.value = false;
+      } catch(e) { toast.error('No se pudo cargar la lista de usuarios'); loadError.value = true; }
       loading.value = false;
     };
     onMounted(()=>{ loadUsers(); });
@@ -2784,7 +2811,7 @@ const UsuariosView = {
     const refresh = async () => {
       loading.value = true;
       await loadUsers();
-      toast.success('Lista actualizada');
+      if (!loadError.value) toast.success('Lista actualizada');
     };
     const selectTab = (t) => { tab.value = t; };
     const counts = computed(() => {
@@ -2830,7 +2857,7 @@ const UsuariosView = {
       } catch(e) { toast.error(e.message); }
     };
     const formatDate = (d) => new Date(d).toLocaleString('es-AR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-    return { loading, users, tab, counts, filtered, rolBadge, rolLabel, estadoBadge, estadoLabel, aprobar, rechazar, desactivar, formatDate, refresh, selectTab };
+    return { loading, users, tab, counts, filtered, rolBadge, rolLabel, estadoBadge, estadoLabel, aprobar, rechazar, desactivar, formatDate, refresh, selectTab, loadError };
   },
   template:`
   <div>
@@ -2857,7 +2884,15 @@ const UsuariosView = {
     </template>
 
     <template v-else>
-      <div v-if="!filtered.length" class="panel">
+      <div v-if="loadError" class="panel">
+        <div class="empty-state">
+          <span v-html="$icon('alert')"></span>
+          <div class="et">No se pudo conectar con el servidor</div>
+          <div class="es">Revisá tu conexión de red y volvé a intentar.</div>
+          <button class="btn btn-primary" style="margin-top:16px" @click="refresh">Reintentar</button>
+        </div>
+      </div>
+      <div v-else-if="!filtered.length" class="panel">
         <div class="empty-state">
           <span v-html="$icon('users')"></span>
           <div class="et">No hay usuarios en esta categoría</div>

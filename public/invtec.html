@@ -2234,8 +2234,8 @@ const EquipoDetailView = {
     const REASIGNA_TIPOS = ['asignacion','transferencia'];
     const movForm = reactive({tipo:'asignacion', titulo:'', responsable:'', descripcion:''});
     const responsableEditable = computed(() => REASIGNA_TIPOS.includes(movForm.tipo));
-    watch(() => movForm.tipo, (tipo) => {
-      movForm.responsable = REASIGNA_TIPOS.includes(tipo) ? '' : (eq.value.responsable || '');
+    watch(() => movForm.tipo, () => {
+      movForm.responsable = eq.value.responsable || '';
     });
     const movErrors = computed(()=>{
       const e = {};
@@ -2245,7 +2245,7 @@ const EquipoDetailView = {
       return e;
     });
     const openMovModal = () => {
-      Object.assign(movForm, {tipo:'asignacion', titulo:'', responsable:'', descripcion:''});
+      Object.assign(movForm, {tipo:'asignacion', titulo:'', responsable: eq.value.responsable || '', descripcion:''});
       movModalOpen.value = true;
     };
     const closeMovModal = () => { movModalOpen.value = false; };

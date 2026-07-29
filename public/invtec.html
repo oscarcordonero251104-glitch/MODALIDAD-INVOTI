@@ -2227,17 +2227,25 @@ const EquipoDetailView = {
     ];
     const movModalOpen = ref(false);
     const movSaving = ref(false);
-    const todayStr = () => new Date().toISOString().slice(0,10);
-    const movForm = reactive({tipo:'asignacion', titulo:'', fecha:todayStr(), responsable:'', descripcion:''});
+    const todayStr = () => {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    };
+    const REASIGNA_TIPOS = ['asignacion','transferencia'];
+    const movForm = reactive({tipo:'asignacion', titulo:'', responsable:'', descripcion:''});
+    const responsableEditable = computed(() => REASIGNA_TIPOS.includes(movForm.tipo));
+    watch(() => movForm.tipo, (tipo) => {
+      movForm.responsable = REASIGNA_TIPOS.includes(tipo) ? '' : (eq.value.responsable || '');
+    });
     const movErrors = computed(()=>{
       const e = {};
       if(!movForm.tipo) e.tipo = 'Requerido';
       if(!movForm.titulo.trim()) e.titulo = 'Requerido';
-      if(!movForm.fecha) e.fecha = 'Requerido';
+      if(responsableEditable.value && !movForm.responsable.trim()) e.responsable = 'Requerido';
       return e;
     });
     const openMovModal = () => {
-      Object.assign(movForm, {tipo:'asignacion', titulo:'', fecha:todayStr(), responsable:'', descripcion:''});
+      Object.assign(movForm, {tipo:'asignacion', titulo:'', responsable:'', descripcion:''});
       movModalOpen.value = true;
     };
     const closeMovModal = () => { movModalOpen.value = false; };
@@ -2246,18 +2254,22 @@ const EquipoDetailView = {
       movSaving.value = true;
       try {
         const token = localStorage.getItem('inv-oti-token');
+        const responsable = responsableEditable.value
+          ? movForm.responsable.trim()||null
+          : (eq.value.responsable || null);
         const res = await fetch('/api/equipos/'+eq.value.id+'/movimientos', {
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
           body: JSON.stringify({
-            tipo: movForm.tipo, titulo: movForm.titulo.trim(), fecha: movForm.fecha,
-            responsable: movForm.responsable.trim()||null, descripcion: movForm.descripcion.trim()||null,
+            tipo: movForm.tipo, titulo: movForm.titulo.trim(), fecha: todayStr(),
+            responsable, descripcion: movForm.descripcion.trim()||null,
           }),
         });
         const data = await res.json();
         if(!res.ok) throw new Error(data.error || 'Error al registrar el movimiento');
         if(!eq.value.movimientos) eq.value.movimientos = [];
         eq.value.movimientos.unshift(data.movimiento);
+        if(responsableEditable.value && responsable) eq.value.responsable = responsable;
         toast.success('Movimiento registrado');
         movModalOpen.value = false;
         activeTab.value = 'mov';
@@ -2269,7 +2281,7 @@ const EquipoDetailView = {
     };
 
     return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR,
-      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, openMovModal, closeMovModal, submitMovimiento,
+      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, responsableEditable, openMovModal, closeMovModal, submitMovimiento,
       goBack:()=>router.push('/equipos') };
   },
   template:`
@@ -2403,26 +2415,25 @@ const EquipoDetailView = {
         </div>
         <form @submit.prevent="submitMovimiento">
           <div class="modal-body">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Tipo <span class="req">*</span></label>
-                <select class="form-select" :class="{err:movErrors.tipo}" v-model="movForm.tipo">
-                  <option v-for="t in tipoMovOptions" :key="t.v" :value="t.v">{{t.l}}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Fecha <span class="req">*</span></label>
-                <input class="form-input" :class="{err:movErrors.fecha}" type="date" v-model="movForm.fecha"/>
-              </div>
+            <div class="form-group">
+              <label class="form-label">Tipo <span class="req">*</span></label>
+              <select class="form-select" :class="{err:movErrors.tipo}" v-model="movForm.tipo">
+                <option v-for="t in tipoMovOptions" :key="t.v" :value="t.v">{{t.l}}</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">Título <span class="req">*</span></label>
               <input class="form-input" :class="{err:movErrors.titulo}" v-model="movForm.titulo" placeholder="Ej: Asignación a Carlos López"/>
               <div class="form-error" v-if="movErrors.titulo">{{movErrors.titulo}}</div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Responsable <span class="opt">(opcional)</span></label>
-              <input class="form-input" v-model="movForm.responsable" placeholder="Nombre del responsable"/>
+            <div class="form-group" v-if="responsableEditable">
+              <label class="form-label">Asignar a <span class="req">*</span></label>
+              <input class="form-input" :class="{err:movErrors.responsable}" v-model="movForm.responsable" placeholder="Nombre de la persona a la que se asigna"/>
+              <div class="form-error" v-if="movErrors.responsable">{{movErrors.responsable}}</div>
+            </div>
+            <div class="form-group" v-else>
+              <label class="form-label">Responsable actual</label>
+              <input class="form-input" :value="eq.responsable || 'Sin asignar'" disabled/>
             </div>
             <div class="form-group">
               <label class="form-label">Descripción <span class="opt">(opcional)</span></label>

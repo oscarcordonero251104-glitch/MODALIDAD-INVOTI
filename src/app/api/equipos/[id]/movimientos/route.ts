@@ -31,6 +31,14 @@ export async function POST(
         responsable: responsable || null,
       },
     })
+
+    if ((tipo === 'asignacion' || tipo === 'transferencia') && responsable) {
+      await db.equipo.update({
+        where: { id },
+        data: { responsable },
+      })
+    }
+
     return NextResponse.json({ movimiento })
   } catch (error) {
     if (error instanceof Response) return error

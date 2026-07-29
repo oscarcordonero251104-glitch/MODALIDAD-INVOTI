@@ -2433,12 +2433,12 @@ const EquipoDetailView = {
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Título <span class="req">*</span></label>
+              <label class="form-label">Asignar a: <span class="req">*</span></label>
               <input class="form-input" :class="{err:movErrors.titulo}" v-model="movForm.titulo" placeholder="Ej: Asignación a Carlos López"/>
               <div class="form-error" v-if="movErrors.titulo">{{movErrors.titulo}}</div>
             </div>
             <div class="form-group" v-if="responsableEditable">
-              <label class="form-label">Asignar a <span class="req">*</span></label>
+              <label class="form-label">Responsable actual: <span class="req">*</span></label>
               <input class="form-input" :class="{err:movErrors.responsable}" v-model="movForm.responsable" placeholder="Nombre de la persona a la que se asigna"/>
               <div class="form-error" v-if="movErrors.responsable">{{movErrors.responsable}}</div>
             </div>

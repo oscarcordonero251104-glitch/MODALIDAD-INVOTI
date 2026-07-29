@@ -2281,7 +2281,7 @@ const EquipoDetailView = {
     };
 
     return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR,
-      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, responsableEditable, openMovModal, closeMovModal, submitMovimiento,
+      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, responsableEditable, todayStr, openMovModal, closeMovModal, submitMovimiento,
       goBack:()=>router.push('/equipos') };
   },
   template:`
@@ -2415,11 +2415,17 @@ const EquipoDetailView = {
         </div>
         <form @submit.prevent="submitMovimiento">
           <div class="modal-body">
-            <div class="form-group">
-              <label class="form-label">Tipo <span class="req">*</span></label>
-              <select class="form-select" :class="{err:movErrors.tipo}" v-model="movForm.tipo">
-                <option v-for="t in tipoMovOptions" :key="t.v" :value="t.v">{{t.l}}</option>
-              </select>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tipo <span class="req">*</span></label>
+                <select class="form-select" :class="{err:movErrors.tipo}" v-model="movForm.tipo">
+                  <option v-for="t in tipoMovOptions" :key="t.v" :value="t.v">{{t.l}}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fecha</label>
+                <input class="form-input" :value="todayStr()" disabled/>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Título <span class="req">*</span></label>

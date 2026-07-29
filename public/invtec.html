@@ -2231,28 +2231,23 @@ const EquipoDetailView = {
       const d = new Date();
       return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     };
-    const REASIGNA_TIPOS = ['asignacion','transferencia'];
-    const movForm = reactive({tipo:'asignacion', titulo:'', responsable:'', descripcion:''});
+    const ACCION_LABEL = {asignacion:'Asignación', transferencia:'Transferencia', reparacion:'Envío a reparación', retorno:'Retorno de reparación'};
+    const movForm = reactive({tipo:'asignacion', responsable:'', descripcion:''});
     const movSubmitAttempted = ref(false);
-    const responsableEditable = computed(() => REASIGNA_TIPOS.includes(movForm.tipo));
     watch(() => movForm.tipo, () => {
       movForm.responsable = eq.value.responsable || '';
     });
     const movErrors = computed(()=>{
       const e = {};
       if(!movForm.tipo) e.tipo = 'Requerido';
-      if(responsableEditable.value){
-        if(!movForm.responsable.trim()) e.responsable = 'Requerido';
-        else if(movForm.responsable.trim().toLowerCase() === (eq.value.responsable||'').trim().toLowerCase()){
-          e.responsable = 'Tiene que ser distinto al responsable actual';
-        }
-      } else if(!movForm.titulo.trim()) {
-        e.titulo = 'Requerido';
+      if(!movForm.responsable.trim()) e.responsable = 'Requerido';
+      else if(movForm.responsable.trim().toLowerCase() === (eq.value.responsable||'').trim().toLowerCase()){
+        e.responsable = 'Tiene que ser distinto al responsable actual';
       }
       return e;
     });
     const openMovModal = () => {
-      Object.assign(movForm, {tipo:'asignacion', titulo:'', responsable: eq.value.responsable || '', descripcion:''});
+      Object.assign(movForm, {tipo:'asignacion', responsable: eq.value.responsable || '', descripcion:''});
       movSubmitAttempted.value = false;
       movModalOpen.value = true;
     };
@@ -2263,15 +2258,8 @@ const EquipoDetailView = {
       movSaving.value = true;
       try {
         const token = localStorage.getItem('inv-oti-token');
-        let titulo, responsable;
-        if(responsableEditable.value){
-          responsable = movForm.responsable.trim();
-          const accion = movForm.tipo === 'transferencia' ? 'Transferencia a ' : 'Asignación a ';
-          titulo = accion + responsable;
-        } else {
-          titulo = movForm.titulo.trim();
-          responsable = eq.value.responsable || null;
-        }
+        const responsable = movForm.responsable.trim();
+        const titulo = ACCION_LABEL[movForm.tipo] + ' a ' + responsable;
         const res = await fetch('/api/equipos/'+eq.value.id+'/movimientos', {
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -2284,7 +2272,7 @@ const EquipoDetailView = {
         if(!res.ok) throw new Error(data.error || 'Error al registrar el movimiento');
         if(!eq.value.movimientos) eq.value.movimientos = [];
         eq.value.movimientos.unshift(data.movimiento);
-        if(responsableEditable.value && responsable) eq.value.responsable = responsable;
+        eq.value.responsable = responsable;
         toast.success('Movimiento registrado');
         movModalOpen.value = false;
         activeTab.value = 'mov';
@@ -2296,7 +2284,7 @@ const EquipoDetailView = {
     };
 
     return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR,
-      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, movSubmitAttempted, responsableEditable, todayStr, openMovModal, closeMovModal, submitMovimiento,
+      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, movSubmitAttempted, todayStr, openMovModal, closeMovModal, submitMovimiento,
       goBack:()=>router.push('/equipos') };
   },
   template:`
@@ -2442,22 +2430,11 @@ const EquipoDetailView = {
                 <input class="form-input" :value="todayStr()" disabled/>
               </div>
             </div>
-            <div class="form-group" v-if="responsableEditable">
+            <div class="form-group">
               <label class="form-label">Asignar a: <span class="req">*</span></label>
               <input class="form-input" :class="{err:movSubmitAttempted && movErrors.responsable}" v-model="movForm.responsable" placeholder="Nombre de la persona a la que se asigna"/>
               <div class="form-error" v-if="movSubmitAttempted && movErrors.responsable">{{movErrors.responsable}}</div>
             </div>
-            <template v-else>
-              <div class="form-group">
-                <label class="form-label">Título <span class="req">*</span></label>
-                <input class="form-input" :class="{err:movSubmitAttempted && movErrors.titulo}" v-model="movForm.titulo" placeholder="Ej: Envío a reparación"/>
-                <div class="form-error" v-if="movSubmitAttempted && movErrors.titulo">{{movErrors.titulo}}</div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Responsable actual</label>
-                <input class="form-input" :value="eq.responsable || 'Sin asignar'" disabled/>
-              </div>
-            </template>
             <div class="form-group">
               <label class="form-label">Descripción <span class="opt">(opcional)</span></label>
               <textarea class="form-textarea" v-model="movForm.descripcion" placeholder="Detalle del movimiento…"></textarea>

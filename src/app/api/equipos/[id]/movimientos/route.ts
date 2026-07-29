@@ -32,7 +32,7 @@ export async function POST(
       },
     })
 
-    if ((tipo === 'asignacion' || tipo === 'transferencia') && responsable) {
+    if (responsable) {
       await db.equipo.update({
         where: { id },
         data: { responsable },

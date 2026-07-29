@@ -2241,7 +2241,12 @@ const EquipoDetailView = {
       const e = {};
       if(!movForm.tipo) e.tipo = 'Requerido';
       if(!movForm.titulo.trim()) e.titulo = 'Requerido';
-      if(responsableEditable.value && !movForm.responsable.trim()) e.responsable = 'Requerido';
+      if(responsableEditable.value){
+        if(!movForm.responsable.trim()) e.responsable = 'Requerido';
+        else if(movForm.responsable.trim().toLowerCase() === (eq.value.responsable||'').trim().toLowerCase()){
+          e.responsable = 'Tiene que ser distinto al responsable actual';
+        }
+      }
       return e;
     });
     const openMovModal = () => {

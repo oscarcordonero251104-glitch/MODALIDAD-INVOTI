@@ -2233,6 +2233,7 @@ const EquipoDetailView = {
     };
     const REASIGNA_TIPOS = ['asignacion','transferencia'];
     const movForm = reactive({tipo:'asignacion', titulo:'', responsable:'', descripcion:''});
+    const movSubmitAttempted = ref(false);
     const responsableEditable = computed(() => REASIGNA_TIPOS.includes(movForm.tipo));
     watch(() => movForm.tipo, () => {
       movForm.responsable = eq.value.responsable || '';
@@ -2252,10 +2253,12 @@ const EquipoDetailView = {
     });
     const openMovModal = () => {
       Object.assign(movForm, {tipo:'asignacion', titulo:'', responsable: eq.value.responsable || '', descripcion:''});
+      movSubmitAttempted.value = false;
       movModalOpen.value = true;
     };
     const closeMovModal = () => { movModalOpen.value = false; };
     const submitMovimiento = async () => {
+      movSubmitAttempted.value = true;
       if(Object.keys(movErrors.value).length){ toast.error('Completá los campos obligatorios'); return; }
       movSaving.value = true;
       try {
@@ -2293,7 +2296,7 @@ const EquipoDetailView = {
     };
 
     return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR,
-      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, responsableEditable, todayStr, openMovModal, closeMovModal, submitMovimiento,
+      tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, movSubmitAttempted, responsableEditable, todayStr, openMovModal, closeMovModal, submitMovimiento,
       goBack:()=>router.push('/equipos') };
   },
   template:`
@@ -2441,14 +2444,14 @@ const EquipoDetailView = {
             </div>
             <div class="form-group" v-if="responsableEditable">
               <label class="form-label">Asignar a: <span class="req">*</span></label>
-              <input class="form-input" :class="{err:movErrors.responsable}" v-model="movForm.responsable" placeholder="Nombre de la persona a la que se asigna"/>
-              <div class="form-error" v-if="movErrors.responsable">{{movErrors.responsable}}</div>
+              <input class="form-input" :class="{err:movSubmitAttempted && movErrors.responsable}" v-model="movForm.responsable" placeholder="Nombre de la persona a la que se asigna"/>
+              <div class="form-error" v-if="movSubmitAttempted && movErrors.responsable">{{movErrors.responsable}}</div>
             </div>
             <template v-else>
               <div class="form-group">
                 <label class="form-label">Título <span class="req">*</span></label>
-                <input class="form-input" :class="{err:movErrors.titulo}" v-model="movForm.titulo" placeholder="Ej: Envío a reparación"/>
-                <div class="form-error" v-if="movErrors.titulo">{{movErrors.titulo}}</div>
+                <input class="form-input" :class="{err:movSubmitAttempted && movErrors.titulo}" v-model="movForm.titulo" placeholder="Ej: Envío a reparación"/>
+                <div class="form-error" v-if="movSubmitAttempted && movErrors.titulo">{{movErrors.titulo}}</div>
               </div>
               <div class="form-group">
                 <label class="form-label">Responsable actual</label>

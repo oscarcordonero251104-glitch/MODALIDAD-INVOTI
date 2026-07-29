@@ -1049,10 +1049,12 @@ async function apiFetch(url, options = {}) {
   if (!res.ok) {
     // Si es 401 en una ruta protegida (no login/register), limpiar sesión
     if (res.status === 401 && !url.includes('/auth/')) {
-      localStorage.removeItem('inv-oti-token');
-      localStorage.removeItem('invtec_user');
-      if (location.hash !== '#/login') {
+      const wasLoggedIn = !!auth.user;
+      auth.logout();
+      if (wasLoggedIn && location.hash !== '#/login') {
         toast.error('Tu sesión expiró o no es válida. Iniciá sesión de nuevo.');
+      }
+      if (location.hash !== '#/login') {
         location.hash = '#/login';
       }
     }

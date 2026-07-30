@@ -2234,9 +2234,6 @@ const EquipoDetailView = {
     const ACCION_LABEL = {asignacion:'Asignación', transferencia:'Transferencia', reparacion:'Envío a reparación', retorno:'Retorno de reparación'};
     const movForm = reactive({tipo:'asignacion', responsable:'', descripcion:''});
     const movSubmitAttempted = ref(false);
-    watch(() => movForm.tipo, () => {
-      movForm.responsable = eq.value.responsable || '';
-    });
     const movErrors = computed(()=>{
       const e = {};
       if(!movForm.tipo) e.tipo = 'Requerido';
@@ -2247,7 +2244,7 @@ const EquipoDetailView = {
       return e;
     });
     const openMovModal = () => {
-      Object.assign(movForm, {tipo:'asignacion', responsable: eq.value.responsable || '', descripcion:''});
+      Object.assign(movForm, {tipo:'asignacion', responsable:'', descripcion:''});
       movSubmitAttempted.value = false;
       movModalOpen.value = true;
     };
@@ -2434,6 +2431,10 @@ const EquipoDetailView = {
               <label class="form-label">Asignar a: <span class="req">*</span></label>
               <input class="form-input" :class="{err:movSubmitAttempted && movErrors.responsable}" v-model="movForm.responsable" placeholder="Nombre de la persona a la que se asigna"/>
               <div class="form-error" v-if="movSubmitAttempted && movErrors.responsable">{{movErrors.responsable}}</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Responsable:</label>
+              <input class="form-input" :value="eq.responsable || 'Sin asignar'" disabled/>
             </div>
             <div class="form-group">
               <label class="form-label">Descripción <span class="opt">(opcional)</span></label>

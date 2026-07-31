@@ -2179,7 +2179,7 @@ const EquipoDetailView = {
     const eq = computed(() => eqById(route.params.id) || DB.equipos[0] || {});
     const movs = computed(() => eq.value.movimientos || []);
     const mts = computed(() => eq.value.mantenimientos || []);
-    const activeTab = ref(route.query.tab==='qr' ? 'qr' : 'info');
+    const activeTab = ref(route.query.tab==='qr' ? 'qr' : route.query.tab==='mt' ? 'mt' : 'info');
     const movIcon = (t) => ({asignacion:'user',transferencia:'move',reparacion:'wrench',retorno:'checkCircle'}[t]||'info');
     const printLabel = () => toast.info('Enviando etiqueta a impresora…');
     const qrUrl = computed(() => location.origin + location.pathname + '#/qr/' + eq.value.id);
@@ -2786,6 +2786,7 @@ const MantenimientosView = {
     const stBadge = (s) => ({'Pendiente':'repair','En proceso':'blue','Completado':'active','Cancelado':'retired'}[s]||'gray');
     const eqName = (m) => m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '—';
     const eqSn = (m) => m.equipo ? m.equipo.sn : '—';
+    const formatEnviado = (d) => d ? new Date(d).toLocaleString('es-AR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
 
     const tipoOptions = ['Preventivo','Correctivo'];
     const estadoOptions = ['Pendiente','En proceso','Completado','Cancelado'];
@@ -2869,7 +2870,7 @@ const MantenimientosView = {
       }
     };
 
-    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, DB, retryLoad,
+    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, formatEnviado, DB, retryLoad,
       tipoOptions, estadoOptions, modalOpen, saving, form, errors, todayStr, openModal, closeModal, submitForm,
       cambiarEstado, estadoSaving };
   },
@@ -2911,10 +2912,10 @@ const MantenimientosView = {
       <div v-else-if="filtered.length">
         <div v-for="m in filtered" :key="m.id" :class="['mt-card', stCls(m.estado)]">
           <div class="mt-head">
-            <div>
+            <router-link :to="'/equipos/'+m.equipoId+'?tab=mt'" style="text-decoration:none;color:inherit">
               <div class="mt-title">{{m.tipo}} · {{eqName(m)}}</div>
               <div class="mt-eq"><span class="sn-tag">{{eqSn(m)}}</span></div>
-            </div>
+            </router-link>
             <span :class="['badge', stBadge(m.estado)]"><span class="bdot"></span>{{m.estado}}</span>
           </div>
           <div class="mt-desc">{{m.descripcion}}</div>
@@ -2923,6 +2924,7 @@ const MantenimientosView = {
             <div class="mr" v-if="m.fechaEjecucion"><span v-html="$icon('check')"></span><span class="ml">Ejecutado:</span>{{m.fechaEjecucion}}</div>
             <div class="mr"><span v-html="$icon('user')"></span><span class="ml">Técnico:</span>{{m.tecnico}}</div>
             <div class="mr" v-if="m.costo"><span v-html="$icon('dollar')"></span><span class="ml">Costo:</span>{{formatMoney(m.costo)}}</div>
+            <div class="mr"><span v-html="$icon('clock')"></span><span class="ml">Enviado:</span>{{formatEnviado(m.createdAt)}}</div>
           </div>
           <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="m.estado==='Pendiente' || m.estado==='En proceso'">
             <button v-if="m.estado==='Pendiente'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'En proceso')">Iniciar</button>

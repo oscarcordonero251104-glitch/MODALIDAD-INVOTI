@@ -2172,6 +2172,7 @@ const EquipoDetailView = {
   setup(){
     const route = VueRouter.useRoute();
     const router = VueRouter.useRouter();
+    const auth = inject(AUTH_KEY);
     const loading = ref(true);
     onMounted(()=>{ setTimeout(()=> { if(DB.ready) loading.value=false; }, 500); });
     watch(()=>DB.ready, (r)=>{ if(r) loading.value=false; });
@@ -2280,7 +2281,7 @@ const EquipoDetailView = {
       }
     };
 
-    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR,
+    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR, auth,
       tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, movSubmitAttempted, todayStr, openMovModal, closeMovModal, submitMovimiento,
       goBack:()=>router.push('/equipos') };
   },
@@ -2295,8 +2296,10 @@ const EquipoDetailView = {
         </div>
         <div class="detail-actions">
           <router-link :to="'/equipos/'+eq.id+'/editar'" class="btn btn-outline"><span class="ic" v-html="$icon('edit')"></span>Editar</router-link>
-          <router-link :to="'/mantenimientos?equipoId='+eq.id" class="btn btn-outline"><span class="ic" v-html="$icon('wrench')"></span>Enviar a mantenimiento</router-link>
-          <button class="btn btn-primary" @click="openMovModal"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
+          <template v-if="auth.user && auth.user.rol==='admin'">
+            <router-link :to="'/mantenimientos?equipoId='+eq.id" class="btn btn-outline"><span class="ic" v-html="$icon('wrench')"></span>Enviar a mantenimiento</router-link>
+            <button class="btn btn-primary" @click="openMovModal"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
+          </template>
         </div>
       </div>
     </div>
@@ -2368,7 +2371,7 @@ const EquipoDetailView = {
         <div v-if="mts.length" class="table-wrap">
           <div class="table-scroll">
             <table class="data-table">
-              <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Técnico</th><th>Estado</th><th style="text-align:right">Costo</th></tr></thead>
+              <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Técnico</th><th>Estado</th></tr></thead>
               <tbody>
                 <tr v-for="m in mts" :key="m.id">
                   <td style="font-family:var(--font-mono);font-size:12px">{{m.fechaEjecucion || m.fechaProgramada}}</td>
@@ -2376,7 +2379,6 @@ const EquipoDetailView = {
                   <td style="max-width:320px">{{m.descripcion}}</td>
                   <td>{{m.tecnico}}</td>
                   <td><span :class="['badge', m.estado==='Completado'?'active':m.estado==='Pendiente'?'repair':m.estado==='En proceso'?'blue':'gray']"><span class="bdot"></span>{{m.estado}}</span></td>
-                  <td style="text-align:right;font-family:var(--font-mono)">{{m.costo ? formatMoney(m.costo) : '—'}}</td>
                 </tr>
               </tbody>
             </table>
@@ -2768,6 +2770,7 @@ const MantenimientosView = {
   setup(){
     const route = VueRouter.useRoute();
     const router = VueRouter.useRouter();
+    const auth = inject(AUTH_KEY);
     const loading = ref(!DB.mantenimientosReady);
     watch(()=>DB.mantenimientosReady, (r)=>{ if(r) loading.value=false; });
     const retryLoad = () => initMantenimientos();
@@ -2812,7 +2815,7 @@ const MantenimientosView = {
     };
     const closeModal = () => { modalOpen.value = false; };
     onMounted(() => {
-      if(route.query.equipoId){
+      if(route.query.equipoId && auth.user && auth.user.rol==='admin'){
         openModal(route.query.equipoId);
         router.replace({ query: {} });
       }
@@ -2870,7 +2873,7 @@ const MantenimientosView = {
       }
     };
 
-    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, formatEnviado, DB, retryLoad,
+    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, formatEnviado, DB, retryLoad, auth,
       tipoOptions, estadoOptions, modalOpen, saving, form, errors, todayStr, openModal, closeModal, submitForm,
       cambiarEstado, estadoSaving };
   },
@@ -2881,7 +2884,7 @@ const MantenimientosView = {
         <div class="page-title">Mantenimientos</div>
         <div class="page-subtitle">Gestión de mantenimientos preventivos y correctivos</div>
       </div>
-      <div class="page-actions">
+      <div class="page-actions" v-if="auth.user && auth.user.rol==='admin'">
         <button class="btn btn-primary" @click="openModal"><span class="ic" v-html="$icon('plus')"></span>Programar mantenimiento</button>
       </div>
     </div>
@@ -2923,10 +2926,9 @@ const MantenimientosView = {
             <div class="mr"><span v-html="$icon('calendar')"></span><span class="ml">Programado:</span>{{m.fechaProgramada}}</div>
             <div class="mr" v-if="m.fechaEjecucion"><span v-html="$icon('check')"></span><span class="ml">Ejecutado:</span>{{m.fechaEjecucion}}</div>
             <div class="mr"><span v-html="$icon('user')"></span><span class="ml">Técnico:</span>{{m.tecnico}}</div>
-            <div class="mr" v-if="m.costo"><span v-html="$icon('dollar')"></span><span class="ml">Costo:</span>{{formatMoney(m.costo)}}</div>
             <div class="mr"><span v-html="$icon('clock')"></span><span class="ml">Enviado:</span>{{formatEnviado(m.createdAt)}}</div>
           </div>
-          <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="m.estado==='Pendiente' || m.estado==='En proceso'">
+          <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="(m.estado==='Pendiente' || m.estado==='En proceso') && auth.user && auth.user.rol==='admin'">
             <button v-if="m.estado==='Pendiente'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'En proceso')">Iniciar</button>
             <button class="btn btn-primary btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Completado')">Completar</button>
             <button class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Cancelado')">Cancelar</button>

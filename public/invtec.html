@@ -2295,6 +2295,7 @@ const EquipoDetailView = {
         </div>
         <div class="detail-actions">
           <router-link :to="'/equipos/'+eq.id+'/editar'" class="btn btn-outline"><span class="ic" v-html="$icon('edit')"></span>Editar</router-link>
+          <router-link :to="'/mantenimientos?equipoId='+eq.id" class="btn btn-outline"><span class="ic" v-html="$icon('wrench')"></span>Enviar a mantenimiento</router-link>
           <button class="btn btn-primary" @click="openMovModal"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
         </div>
       </div>
@@ -2765,6 +2766,8 @@ const EquipoFormView = {
    ============================================================ */
 const MantenimientosView = {
   setup(){
+    const route = VueRouter.useRoute();
+    const router = VueRouter.useRouter();
     const loading = ref(!DB.mantenimientosReady);
     watch(()=>DB.mantenimientosReady, (r)=>{ if(r) loading.value=false; });
     const retryLoad = () => initMantenimientos();
@@ -2798,11 +2801,42 @@ const MantenimientosView = {
       if(!form.tecnico.trim()) e.tecnico = 'Requerido';
       return e;
     });
-    const openModal = () => {
-      Object.assign(form, {equipoId:'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente', costo:''});
+    const openModal = (equipoId) => {
+      Object.assign(form, {equipoId: equipoId||'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente', costo:''});
       modalOpen.value = true;
     };
     const closeModal = () => { modalOpen.value = false; };
+    onMounted(() => {
+      if(route.query.equipoId){
+        openModal(route.query.equipoId);
+        router.replace({ query: {} });
+      }
+    });
+    const estadoSaving = ref('');
+    const cambiarEstado = async (m, nuevoEstado) => {
+      estadoSaving.value = m.id;
+      try {
+        const token = localStorage.getItem('inv-oti-token');
+        const res = await fetch('/api/mantenimientos/'+m.id, {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({ estado: nuevoEstado }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || 'Error al actualizar el mantenimiento');
+        Object.assign(m, data.mantenimiento);
+        const eqRef = DB.equipos.find(e=>e.id===m.equipoId);
+        if(eqRef && eqRef.mantenimientos){
+          const idx = eqRef.mantenimientos.findIndex(x=>x.id===m.id);
+          if(idx>=0) Object.assign(eqRef.mantenimientos[idx], data.mantenimiento);
+        }
+        toast.success('Mantenimiento actualizado a "'+nuevoEstado+'"');
+      } catch(e) {
+        toast.error(e.message);
+      } finally {
+        estadoSaving.value = '';
+      }
+    };
     const submitForm = async () => {
       if(Object.keys(errors.value).length){ toast.error('Completá los campos obligatorios'); return; }
       saving.value = true;
@@ -2832,7 +2866,8 @@ const MantenimientosView = {
     };
 
     return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, DB, retryLoad,
-      tipoOptions, estadoOptions, modalOpen, saving, form, errors, openModal, closeModal, submitForm };
+      tipoOptions, estadoOptions, modalOpen, saving, form, errors, openModal, closeModal, submitForm,
+      cambiarEstado, estadoSaving };
   },
   template:`
   <div>
@@ -2884,6 +2919,11 @@ const MantenimientosView = {
             <div class="mr" v-if="m.fechaEjecucion"><span v-html="$icon('check')"></span><span class="ml">Ejecutado:</span>{{m.fechaEjecucion}}</div>
             <div class="mr"><span v-html="$icon('user')"></span><span class="ml">Técnico:</span>{{m.tecnico}}</div>
             <div class="mr" v-if="m.costo"><span v-html="$icon('dollar')"></span><span class="ml">Costo:</span>{{formatMoney(m.costo)}}</div>
+          </div>
+          <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="m.estado==='Pendiente' || m.estado==='En proceso'">
+            <button v-if="m.estado==='Pendiente'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'En proceso')">Iniciar</button>
+            <button class="btn btn-primary btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Completado')">Completar</button>
+            <button class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Cancelado')">Cancelar</button>
           </div>
         </div>
       </div>

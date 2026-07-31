@@ -2791,18 +2791,22 @@ const MantenimientosView = {
     const estadoOptions = ['Pendiente','En proceso','Completado','Cancelado'];
     const modalOpen = ref(false);
     const saving = ref(false);
-    const todayStr = () => new Date().toISOString().slice(0,10);
-    const form = reactive({equipoId:'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente', costo:''});
+    const todayStr = () => {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    };
+    const form = reactive({equipoId:'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente'});
     const errors = computed(()=>{
       const e = {};
       if(!form.equipoId) e.equipoId = 'Requerido';
       if(!form.descripcion.trim()) e.descripcion = 'Requerido';
       if(!form.fechaProgramada) e.fechaProgramada = 'Requerido';
+      else if(form.fechaProgramada < todayStr()) e.fechaProgramada = 'No puede ser antes de hoy';
       if(!form.tecnico.trim()) e.tecnico = 'Requerido';
       return e;
     });
     const openModal = (equipoId) => {
-      Object.assign(form, {equipoId: equipoId||'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente', costo:''});
+      Object.assign(form, {equipoId: equipoId||'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente'});
       modalOpen.value = true;
     };
     const closeModal = () => { modalOpen.value = false; };
@@ -2848,7 +2852,7 @@ const MantenimientosView = {
           body: JSON.stringify({
             equipoId: form.equipoId, tipo: form.tipo, descripcion: form.descripcion.trim(),
             fechaProgramada: form.fechaProgramada, fechaEjecucion: form.fechaEjecucion || null,
-            tecnico: form.tecnico.trim(), estado: form.estado, costo: Number(form.costo)||0,
+            tecnico: form.tecnico.trim(), estado: form.estado,
           }),
         });
         const data = await res.json();
@@ -2866,7 +2870,7 @@ const MantenimientosView = {
     };
 
     return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, DB, retryLoad,
-      tipoOptions, estadoOptions, modalOpen, saving, form, errors, openModal, closeModal, submitForm,
+      tipoOptions, estadoOptions, modalOpen, saving, form, errors, todayStr, openModal, closeModal, submitForm,
       cambiarEstado, estadoSaving };
   },
   template:`
@@ -2974,23 +2978,18 @@ const MantenimientosView = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Fecha programada <span class="req">*</span></label>
-                <input class="form-input" :class="{err:errors.fechaProgramada}" type="date" v-model="form.fechaProgramada"/>
+                <input class="form-input" :class="{err:errors.fechaProgramada}" type="date" :min="todayStr()" v-model="form.fechaProgramada"/>
+                <div class="form-error" v-if="errors.fechaProgramada">{{errors.fechaProgramada}}</div>
               </div>
               <div class="form-group">
                 <label class="form-label">Fecha de ejecución <span class="opt">(opcional)</span></label>
                 <input class="form-input" type="date" v-model="form.fechaEjecucion"/>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Técnico <span class="req">*</span></label>
-                <input class="form-input" :class="{err:errors.tecnico}" v-model="form.tecnico" placeholder="Nombre del técnico"/>
-                <div class="form-error" v-if="errors.tecnico">{{errors.tecnico}}</div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Costo <span class="opt">(opcional)</span></label>
-                <input class="form-input" type="number" min="0" v-model="form.costo" placeholder="0"/>
-              </div>
+            <div class="form-group">
+              <label class="form-label">Técnico <span class="req">*</span></label>
+              <input class="form-input" :class="{err:errors.tecnico}" v-model="form.tecnico" placeholder="Nombre del técnico"/>
+              <div class="form-error" v-if="errors.tecnico">{{errors.tecnico}}</div>
             </div>
           </div>
           <div style="display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px">

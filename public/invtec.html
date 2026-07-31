@@ -2928,7 +2928,7 @@ const MantenimientosView = {
             <div class="mr"><span v-html="$icon('user')"></span><span class="ml">Técnico:</span>{{m.tecnico}}</div>
             <div class="mr"><span v-html="$icon('clock')"></span><span class="ml">Enviado:</span>{{formatEnviado(m.createdAt)}}</div>
           </div>
-          <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="(m.estado==='Pendiente' || m.estado==='En proceso') && auth.user && auth.user.rol==='admin'">
+          <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="m.estado==='Pendiente' || m.estado==='En proceso'">
             <button v-if="m.estado==='Pendiente'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'En proceso')">Iniciar</button>
             <button class="btn btn-primary btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Completado')">Completar</button>
             <button class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Cancelado')">Cancelar</button>

@@ -1191,16 +1191,6 @@ function computeAlertas() {
     }
   });
 
-  DB.equipos.forEach(eq=>{
-    if(eq.estado!=='activo') return;
-    const movs = eq.movimientos||[];
-    const ultimaFecha = movs.length ? movs[0].fecha : eq.createdAt;
-    const dias = Math.floor((hoy-new Date(ultimaFecha))/86400000);
-    if(dias>=90){
-      list.push({severidad:'gray', titulo:'Equipo sin movimiento', sub:eq.marca+' '+eq.modelo, sn:eq.sn, detalle:dias+' días sin actividad', prioridad:-dias, equipoId:eq.id});
-    }
-  });
-
   const orden = {red:0, amber:1, gray:2};
   list.sort((a,b)=> orden[a.severidad]-orden[b.severidad] || a.prioridad-b.prioridad);
   return list;

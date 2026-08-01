@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAdmin } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAdmin(request)
+    requireAuth(request)
     const { id } = await params
     const body = await request.json()
     const { tipo, titulo, fecha, descripcion, responsable } = body

@@ -1942,6 +1942,7 @@ const DashboardView = {
 const EquiposListView = {
   setup(){
     const router = VueRouter.useRouter();
+    const auth = inject(AUTH_KEY);
     const loading = ref(true);
     onMounted(()=>{ setTimeout(()=> loading.value=false, 600); });
     const retryLoad = () => initDB();
@@ -2015,7 +2016,7 @@ const EquiposListView = {
     const delEq = async (id,e) => { e.stopPropagation(); await deleteEquipo(id); toast.success('Equipo eliminado — en cola para sincronización'); };
     const goToPage = (p) => { if(p>=1 && p<=totalPages.value) page.value=p; };
 
-    return { DB, loading, viewMode, filters, estadoOptions, addUbicacion,
+    return { DB, loading, viewMode, filters, estadoOptions, addUbicacion, auth,
       filtered, paged, totalPages, page, perPage, activeFilterTags, removeTag, clearFilters,
       toggleEstado, allSelected, selected, toggleAll, toggleOne,
       exportData, goNew, goDetail, editEq, delEq, goToPage, estadoMeta, retryLoad };
@@ -2034,7 +2035,7 @@ const EquiposListView = {
           <div :class="['vt',{active:viewMode==='grid'}]" @click="viewMode='grid'" v-html="$icon('grid')"></div>
         </div>
         <button class="btn btn-outline" @click="$root.ui.qrScannerOpen=true"><span class="ic" v-html="$icon('qr')"></span>Escanear QR</button>
-        <button class="btn btn-primary" @click="goNew"><span class="ic" v-html="$icon('plus')"></span>Nuevo equipo</button>
+        <button v-if="auth.user && auth.user.rol==='admin'" class="btn btn-primary" @click="goNew"><span class="ic" v-html="$icon('plus')"></span>Nuevo equipo</button>
       </div>
     </div>
 
@@ -2296,10 +2297,8 @@ const EquipoDetailView = {
         </div>
         <div class="detail-actions">
           <router-link :to="'/equipos/'+eq.id+'/editar'" class="btn btn-outline"><span class="ic" v-html="$icon('edit')"></span>Editar</router-link>
-          <template v-if="auth.user && auth.user.rol==='admin'">
-            <router-link :to="'/mantenimientos?equipoId='+eq.id" class="btn btn-outline"><span class="ic" v-html="$icon('wrench')"></span>Enviar a mantenimiento</router-link>
-            <button class="btn btn-primary" @click="openMovModal"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
-          </template>
+          <router-link v-if="auth.user && auth.user.rol==='admin'" :to="'/mantenimientos?equipoId='+eq.id" class="btn btn-outline"><span class="ic" v-html="$icon('wrench')"></span>Enviar a mantenimiento</router-link>
+          <button class="btn btn-primary" @click="openMovModal"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
         </div>
       </div>
     </div>
@@ -3551,7 +3550,7 @@ const routes = [
     children:[
       { path:'dashboard', component:DashboardView, meta:{requiresAuth:true,bc:'Dashboard'} },
       { path:'equipos', component:EquiposListView, meta:{requiresAuth:true,bc:'Equipos'} },
-      { path:'equipos/nuevo', component:EquipoFormView, meta:{requiresAuth:true,bc:'Nuevo equipo'} },
+      { path:'equipos/nuevo', component:EquipoFormView, meta:{requiresAuth:true,requiresAdmin:true,bc:'Nuevo equipo'} },
       { path:'equipos/:id', component:EquipoDetailView, meta:{requiresAuth:true,bc:'Detalle'} },
       { path:'equipos/:id/editar', component:EquipoFormView, meta:{requiresAuth:true,bc:'Editar'} },
       { path:'mantenimientos', component:MantenimientosView, meta:{requiresAuth:true,bc:'Mantenimientos'} },

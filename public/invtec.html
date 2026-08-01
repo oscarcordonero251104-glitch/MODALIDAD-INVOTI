@@ -2252,8 +2252,7 @@ const EquipoDetailView = {
     };
 
     const tipoMovOptions = [
-      {v:'asignacion',l:'Asignación'},
-      {v:'transferencia',l:'Transferencia'},
+      {v:'asignacion',l:'Reasignación'},
       {v:'reparacion',l:'Envío a reparación'},
       {v:'retorno',l:'Retorno de reparación'},
     ];
@@ -2263,7 +2262,7 @@ const EquipoDetailView = {
       const d = new Date();
       return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     };
-    const ACCION_LABEL = {asignacion:'Asignación', transferencia:'Transferencia', reparacion:'Envío a reparación', retorno:'Retorno de reparación'};
+    const ACCION_LABEL = {asignacion:'Reasignación', reparacion:'Envío a reparación', retorno:'Retorno de reparación'};
     const movForm = reactive({tipo:'asignacion', responsable:'', descripcion:''});
     const movSubmitAttempted = ref(false);
     const movErrors = computed(()=>{

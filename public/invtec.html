@@ -2804,7 +2804,7 @@ const MantenimientosView = {
     const retryLoad = () => initMantenimientos();
     const tab = ref('pendientes');
     const counts = computed(()=>({
-      pendientes: DB.mantenimientos.filter(m=>m.estado==='Pendiente').length,
+      pendientes: DB.mantenimientos.filter(m=>m.estado!=='Completado').length,
       completados: DB.mantenimientos.filter(m=>m.estado==='Completado').length,
       todos: DB.mantenimientos.length,
     }));
@@ -2849,10 +2849,31 @@ const MantenimientosView = {
       }
     });
     const estadoSaving = ref('');
+    const eliminarMantenimientoLocal = (id) => {
+      const idx = DB.mantenimientos.findIndex(x=>x.id===id);
+      if(idx>=0) DB.mantenimientos.splice(idx,1);
+      DB.equipos.forEach(eq => {
+        if(eq.mantenimientos){
+          const i = eq.mantenimientos.findIndex(x=>x.id===id);
+          if(i>=0) eq.mantenimientos.splice(i,1);
+        }
+      });
+    };
     const cambiarEstado = async (m, nuevoEstado) => {
       estadoSaving.value = m.id;
       try {
         const token = localStorage.getItem('inv-oti-token');
+        if(nuevoEstado === 'Cancelado'){
+          const res = await fetch('/api/mantenimientos/'+m.id, {
+            method:'DELETE',
+            headers:{'Authorization':'Bearer '+token},
+          });
+          const data = await res.json();
+          if(!res.ok) throw new Error(data.error || 'Error al cancelar el mantenimiento');
+          eliminarMantenimientoLocal(m.id);
+          toast.success('Mantenimiento cancelado y eliminado');
+          return;
+        }
         const res = await fetch('/api/mantenimientos/'+m.id, {
           method:'PATCH',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},

@@ -44,3 +44,23 @@ export async function PATCH(
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    requireAuth(request)
+    const { id } = await params
+    const existing = await db.mantenimiento.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Mantenimiento no encontrado' }, { status: 404 })
+    }
+    await db.mantenimiento.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    if (error instanceof Response) return error
+    console.error('DELETE /api/mantenimientos/[id] error:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}

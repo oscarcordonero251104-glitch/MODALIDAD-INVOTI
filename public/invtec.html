@@ -2937,6 +2937,15 @@ const MantenimientosView = {
       const d = new Date();
       return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     };
+    const tecnicosDisponibles = ref([]);
+    const loadTecnicos = async () => {
+      if(!auth.user || auth.user.rol!=='admin') return;
+      try {
+        const data = await apiFetch('/api/usuarios');
+        tecnicosDisponibles.value = data.users.filter(u=>u.rol==='tecnico' && u.estado==='activo');
+      } catch(e) { /* silencioso: el select queda vacío si falla */ }
+    };
+    onMounted(()=>{ loadTecnicos(); });
     const form = reactive({equipoId:'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente'});
     const errors = computed(()=>{
       const e = {};
@@ -3033,7 +3042,7 @@ const MantenimientosView = {
     };
 
     return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, formatEnviado, DB, retryLoad, auth,
-      tipoOptions, estadoOptions, modalOpen, saving, form, errors, todayStr, openModal, closeModal, submitForm,
+      tipoOptions, estadoOptions, modalOpen, saving, form, errors, todayStr, tecnicosDisponibles, openModal, closeModal, submitForm,
       cambiarEstado, estadoSaving };
   },
   template:`
@@ -3151,7 +3160,11 @@ const MantenimientosView = {
             </div>
             <div class="form-group">
               <label class="form-label">Técnico <span class="req">*</span></label>
-              <input class="form-input" :class="{err:errors.tecnico}" v-model="form.tecnico" placeholder="Nombre del técnico"/>
+              <select class="form-select" :class="{err:errors.tecnico}" v-model="form.tecnico">
+                <option value="">Seleccionar…</option>
+                <option v-for="t in tecnicosDisponibles" :key="t.id" :value="t.nombre">{{t.nombre}}</option>
+              </select>
+              <div class="form-error" v-if="tecnicosDisponibles.length===0" style="color:var(--gray-500)">No hay técnicos activos registrados</div>
               <div class="form-error" v-if="errors.tecnico">{{errors.tecnico}}</div>
             </div>
           </div>

@@ -572,6 +572,9 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 .alert-icon.gray{background:rgba(100,116,139,0.15);color:var(--gray-400)}
 .alert-icon svg{width:17px;height:17px}
 .alert-body{flex:1;min-width:0}
+.alert-dismiss{flex-shrink:0;width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--gray-500);background:transparent;transition:all 0.2s var(--ease-expo)}
+.alert-dismiss:hover{background:var(--bg-hover);color:var(--white)}
+.alert-dismiss svg{width:13px;height:13px}
 .alert-title{font-size:13.5px;color:var(--gray-100);font-weight:600;margin-bottom:3px}
 .alert-sub{font-size:12px;color:var(--gray-400)}
 .alert-sub .sn-tag{margin-left:4px}
@@ -1164,6 +1167,16 @@ const eqById = (id) => DB.equipos.find(e => String(e.id) === String(id));
 const formatMoney = (n) => 'C$' + Number(n||0).toLocaleString('es-AR');
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const formatNum = (n) => Number(n||0).toLocaleString('es-AR');
+const ALERTS_DISMISSED_KEY = 'inv-oti-dismissed-alerts';
+const alertasState = reactive({
+  dismissed: (() => { try { return JSON.parse(localStorage.getItem(ALERTS_DISMISSED_KEY)||'[]'); } catch(e){ return []; } })(),
+});
+const dismissAlerta = (id) => {
+  if(!alertasState.dismissed.includes(id)){
+    alertasState.dismissed.push(id);
+    localStorage.setItem(ALERTS_DISMISSED_KEY, JSON.stringify(alertasState.dismissed));
+  }
+};
 function computeAlertas() {
   const hoy = new Date();
   const en90 = new Date(); en90.setDate(hoy.getDate()+90);
@@ -1174,7 +1187,7 @@ function computeAlertas() {
       const fg = new Date(eq.fechaGarantia);
       if(fg >= hoy && fg <= en90){
         const dias = Math.ceil((fg-hoy)/86400000);
-        list.push({severidad:'amber', titulo:'Garantía próxima a vencer', sub:eq.marca+' '+eq.modelo, sn:eq.sn, detalle:'Vence en '+dias+' días', prioridad:dias, equipoId:eq.id});
+        list.push({id:'garantia-'+eq.id, severidad:'amber', titulo:'Garantía próxima a vencer', sub:eq.marca+' '+eq.modelo, sn:eq.sn, detalle:'Vence en '+dias+' días', prioridad:dias, equipoId:eq.id});
       }
     }
   });
@@ -1186,14 +1199,15 @@ function computeAlertas() {
         const dias = Math.floor((hoy-fp)/86400000);
         const eqLabel = m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '—';
         const eqSn = m.equipo ? m.equipo.sn : '—';
-        list.push({severidad:'red', titulo:'Mantenimiento vencido', sub:eqLabel, sn:eqSn, detalle:'Programado para hace '+dias+' día'+(dias===1?'':'s'), prioridad:-dias, equipoId:m.equipoId});
+        list.push({id:'mant-'+m.id, severidad:'red', titulo:'Mantenimiento vencido', sub:eqLabel, sn:eqSn, detalle:'Programado para hace '+dias+' día'+(dias===1?'':'s'), prioridad:-dias, equipoId:m.equipoId});
       }
     }
   });
 
   const orden = {red:0, amber:1, gray:2};
-  list.sort((a,b)=> orden[a.severidad]-orden[b.severidad] || a.prioridad-b.prioridad);
-  return list;
+  const visible = list.filter(a=> !alertasState.dismissed.includes(a.id));
+  visible.sort((a,b)=> orden[a.severidad]-orden[b.severidad] || a.prioridad-b.prioridad);
+  return visible;
 }
 const formatRelativeTime = (fecha) => {
   if (!fecha) return '—';
@@ -1747,7 +1761,7 @@ const AppHeader = {
     });
     const forceSync = () => { if(syncState.online) flushSync(); else toast.warning('Sin conexión — imposible sincronizar'); };
     return { crumbs, openSearch, openQR, auth, ui, toggleMobileSidebar, syncState, syncBadgeCls, syncLabel, forceSync,
-      notifOpen, alertas, toggleNotif, goToAlerta };
+      notifOpen, alertas, toggleNotif, goToAlerta, dismissAlerta };
   },
   template:`
   <header class="app-header">
@@ -1784,6 +1798,7 @@ const AppHeader = {
               <div class="alert-title">{{a.titulo}}</div>
               <div class="alert-sub">{{a.sub}} · <span class="sn-tag">{{a.sn}}</span> · {{a.detalle}}</div>
             </div>
+            <button class="alert-dismiss" title="Quitar notificación" @click.stop="dismissAlerta(a.id)" v-html="$icon('x')"></button>
           </div>
         </div>
       </div>
@@ -1910,7 +1925,7 @@ const DashboardView = {
       return items.slice(0,8).map(i=>({texto:i.texto, tiempo:formatRelativeTime(i.fecha)}));
     });
 
-    return { loading, kpis, barData, maxBar, segments, C, r, donutData, alertas, actividades, formatNum, formatMoney };
+    return { loading, kpis, barData, maxBar, segments, C, r, donutData, alertas, actividades, formatNum, formatMoney, dismissAlerta };
   },
   template:`
   <div>
@@ -2007,6 +2022,7 @@ const DashboardView = {
                 <div class="alert-title">{{a.titulo}}</div>
                 <div class="alert-sub">{{a.sub}} · <span class="sn-tag">{{a.sn}}</span> · {{a.detalle}}</div>
               </div>
+              <button class="alert-dismiss" title="Quitar notificación" @click="dismissAlerta(a.id)" v-html="$icon('x')"></button>
             </div>
           </div>
         </div>

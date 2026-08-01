@@ -1160,6 +1160,20 @@ const eqById = (id) => DB.equipos.find(e => String(e.id) === String(id));
 const formatMoney = (n) => 'C$' + Number(n||0).toLocaleString('es-AR');
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const formatNum = (n) => Number(n||0).toLocaleString('es-AR');
+const formatRelativeTime = (fecha) => {
+  if (!fecha) return '—';
+  const f = new Date(fecha);
+  const diffMs = Date.now() - f.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'hace un momento';
+  if (diffMin < 60) return 'hace ' + diffMin + ' min';
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return 'hace ' + diffH + ' hora' + (diffH===1?'':'s');
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 30) return 'hace ' + diffD + ' día' + (diffD===1?'':'s');
+  const diffMonth = Math.floor(diffD / 30);
+  return 'hace ' + diffMonth + ' mes' + (diffMonth===1?'':'es');
+};
 
 /* QR generator — real, scannable QR code (kazuhikoarase/qrcode-generator) */
 function generateQR(text) {
@@ -1819,7 +1833,68 @@ const DashboardView = {
       });
     });
 
-    return { loading, kpis, barData, maxBar, segments, C, r, donutData, alertas:DB.alertas, actividades:DB.actividades, formatNum, formatMoney };
+    const alertas = computed(()=>{
+      const hoy = new Date();
+      const en90 = new Date(); en90.setDate(hoy.getDate()+90);
+      const list = [];
+
+      DB.equipos.forEach(eq=>{
+        if(eq.fechaGarantia){
+          const fg = new Date(eq.fechaGarantia);
+          if(fg >= hoy && fg <= en90){
+            const dias = Math.ceil((fg-hoy)/86400000);
+            list.push({severidad:'amber', titulo:'Garantía próxima a vencer', sub:eq.marca+' '+eq.modelo, sn:eq.sn, detalle:'Vence en '+dias+' días', prioridad:dias});
+          }
+        }
+      });
+
+      DB.mantenimientos.forEach(m=>{
+        if(m.estado!=='Completado' && m.estado!=='Cancelado' && m.fechaProgramada){
+          const fp = new Date(m.fechaProgramada);
+          if(fp < hoy){
+            const dias = Math.floor((hoy-fp)/86400000);
+            const eqLabel = m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '—';
+            const eqSn = m.equipo ? m.equipo.sn : '—';
+            list.push({severidad:'red', titulo:'Mantenimiento vencido', sub:eqLabel, sn:eqSn, detalle:'Programado para hace '+dias+' día'+(dias===1?'':'s'), prioridad:-dias});
+          }
+        }
+      });
+
+      DB.equipos.forEach(eq=>{
+        if(eq.estado!=='activo') return;
+        const movs = eq.movimientos||[];
+        const ultimaFecha = movs.length ? movs[0].fecha : eq.createdAt;
+        const dias = Math.floor((hoy-new Date(ultimaFecha))/86400000);
+        if(dias>=90){
+          list.push({severidad:'gray', titulo:'Equipo sin movimiento', sub:eq.marca+' '+eq.modelo, sn:eq.sn, detalle:dias+' días sin actividad', prioridad:-dias});
+        }
+      });
+
+      const orden = {red:0, amber:1, gray:2};
+      list.sort((a,b)=> orden[a.severidad]-orden[b.severidad] || a.prioridad-b.prioridad);
+      return list.slice(0,8);
+    });
+
+    const actividades = computed(()=>{
+      const items = [];
+      DB.equipos.forEach(eq=>{
+        items.push({texto:'Nuevo equipo registrado: '+eq.marca+' '+eq.modelo, fecha:eq.createdAt});
+        (eq.movimientos||[]).forEach(m=>{
+          items.push({texto:m.titulo+' ('+eq.marca+' '+eq.modelo+')', fecha:m.createdAt});
+        });
+      });
+      DB.mantenimientos.forEach(m=>{
+        const eqLabel = m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '';
+        items.push({texto:'Mantenimiento programado: '+eqLabel, fecha:m.createdAt});
+        if(m.estado==='Completado'){
+          items.push({texto:'Mantenimiento completado: '+eqLabel, fecha:m.fechaEjecucion || m.createdAt});
+        }
+      });
+      items.sort((a,b)=> new Date(b.fecha) - new Date(a.fecha));
+      return items.slice(0,8).map(i=>({texto:i.texto, tiempo:formatRelativeTime(i.fecha)}));
+    });
+
+    return { loading, kpis, barData, maxBar, segments, C, r, donutData, alertas, actividades, formatNum, formatMoney };
   },
   template:`
   <div>

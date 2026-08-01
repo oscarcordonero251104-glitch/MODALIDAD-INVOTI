@@ -2183,7 +2183,37 @@ const EquipoDetailView = {
     const mts = computed(() => eq.value.mantenimientos || []);
     const activeTab = ref(route.query.tab==='qr' ? 'qr' : route.query.tab==='mt' ? 'mt' : 'info');
     const movIcon = (t) => ({asignacion:'user',transferencia:'move',reparacion:'wrench',retorno:'checkCircle'}[t]||'info');
-    const printLabel = () => toast.info('Enviando etiqueta a impresora…');
+    const printLabel = () => {
+      const q = qr.value;
+      const cell = 10, quiet = 4;
+      const px = (q.size + quiet*2) * cell;
+      const labelH = 44;
+      const canvas = document.createElement('canvas');
+      canvas.width = px;
+      canvas.height = px + labelH;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000000';
+      for (let row=0; row<q.size; row++) {
+        for (let col=0; col<q.size; col++) {
+          if (q.cells[row*q.size+col]) ctx.fillRect((col+quiet)*cell, (row+quiet)*cell, cell, cell);
+        }
+      }
+      ctx.fillStyle = '#111111';
+      ctx.font = '600 20px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(eq.value.sn, canvas.width/2, px + 30);
+      const dataUrl = canvas.toDataURL('image/png');
+      const win = window.open('', '_blank', 'width=420,height=520');
+      if (!win) { toast.error('El navegador bloqueó la ventana de impresión. Habilitá las ventanas emergentes e intentá de nuevo.'); return; }
+      win.document.write(
+        '<html><head><title>Etiqueta QR - ' + eq.value.sn + '</title>' +
+        '<style>@page{margin:10mm} body{display:flex;align-items:center;justify-content:center;margin:0;height:100vh} img{width:60mm}</style>' +
+        '</head><body><img src="' + dataUrl + '" onload="window.print(); window.onafterprint = () => window.close();"/></body></html>'
+      );
+      win.document.close();
+    };
     const qrUrl = computed(() => location.origin + location.pathname + '#/qr/' + eq.value.id);
     const qr = computed(() => generateQR(qrUrl.value));
     const isLocalhost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);

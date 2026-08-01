@@ -2023,11 +2023,7 @@ const EquiposListView = {
     const retryLoad = () => initDB();
 
     const viewMode = ref('table');
-    const todayStr = () => {
-      const d = new Date();
-      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    };
-    const filters = reactive({descripcion:'',estados:[],ubicacion:'',fechaDesde:todayStr(),fechaHasta:todayStr()});
+    const filters = reactive({descripcion:'',estados:[],ubicacion:'',fechaDesde:'',fechaHasta:''});
     const allSelected = ref(false);
     const selected = ref([]);
     const page = ref(1);

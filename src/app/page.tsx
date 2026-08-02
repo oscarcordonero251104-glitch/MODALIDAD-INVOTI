@@ -22,6 +22,7 @@ export default function Home() {
         letterSpacing: '0.1em',
       }}
     >
+      <meta httpEquiv="refresh" content="0; url=/invtec.html#/login" />
       <span>CARGANDO INV-OTI…</span>
     </div>
   )

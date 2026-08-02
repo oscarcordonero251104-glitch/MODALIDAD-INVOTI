@@ -864,7 +864,7 @@ const I = {
 };
 const iconFor = (name) => I[name] || '';
 const typeIcon = (tipo) => {
-  const map = {Laptop:'laptop',Desktop:'desktop',Monitor:'monitor',Impresora:'printer',Servidor:'server',Switch:'switch',Router:'router',UPS:'ups'};
+  const map = {Laptop:'laptop',Desktop:'desktop',CPU:'cpu',Monitor:'monitor',Impresora:'printer',Servidor:'server',Switch:'switch',Router:'router',UPS:'ups'};
   return I[map[tipo] || 'monitor'];
 };
 
@@ -1882,7 +1882,7 @@ const DashboardView = {
     ]);
 
     const barData = computed(()=>{
-      const tipos = ['Laptop','Desktop','Monitor','Impresora','Servidor','Switch','Router','UPS'];
+      const tipos = ['Laptop','Desktop','CPU','Monitor','Impresora','Servidor','Switch','Router','UPS'];
       return tipos.map(t=>({label:t, value: DB.equipos.filter(e=>e.tipo===t).length})).filter(b=>b.value>0);
     });
     const maxBar = computed(()=> Math.max(...barData.value.map(b=>b.value)));
@@ -2648,7 +2648,7 @@ const EquipoFormView = {
       });
     }, {immediate:true});
 
-    const tipoOptions = ['Laptop','Desktop','Monitor','Impresora','Servidor','Switch','Router','UPS'];
+    const tipoOptions = ['Laptop','Desktop','CPU','Monitor','Impresora','Servidor','Switch','Router','UPS'];
     const estadoOptions = [{v:'activo',l:'Activo'},{v:'almacen',l:'En Almacén'},{v:'reparacion',l:'En Reparación'},{v:'baja',l:'Baja'}];
     const addUbicacion = () => {
       const nombre = prompt('Nombre de la nueva ubicación:');

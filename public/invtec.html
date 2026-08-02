@@ -1853,9 +1853,16 @@ const DashboardView = {
     const activos = computed(()=> DB.equipos.filter(e=>e.estado==='activo').length);
     const enReparacion = computed(()=> DB.equipos.filter(e=>e.estado==='reparacion').length);
     const costoTotal = computed(()=> DB.equipos.reduce((s,e)=>s+e.costo,0));
+    const equiposEsteMes = computed(()=>{
+      const hoy = new Date();
+      return DB.equipos.filter(e=>{
+        const c = new Date(e.createdAt);
+        return c.getFullYear()===hoy.getFullYear() && c.getMonth()===hoy.getMonth();
+      }).length;
+    });
 
     const kpis = computed(()=>[
-      {label:'Total Equipos',value:formatNum(totalEquipos.value),icon:'monitor',cls:'',trend:'+2 este mes',trendCls:'up'},
+      {label:'Total Equipos',value:formatNum(totalEquipos.value),icon:'monitor',cls:'',trend: equiposEsteMes.value>0 ? ('+'+equiposEsteMes.value+' este mes') : '',trendCls:'up'},
       {label:'Activos',value:formatNum(activos.value),icon:'checkCircle',cls:'green',trend:Math.round(activos.value/totalEquipos.value*100)+'% del total',trendCls:'up'},
       {label:'En Reparación',value:formatNum(enReparacion.value),icon:'wrench',cls:'amber',trend:'Requieren atención',trendCls:'down'},
       {label:'Costo Total',value:formatMoney(costoTotal.value),icon:'dollar',cls:'blue',trend:'Valor en inventario',trendCls:''},
@@ -1958,7 +1965,7 @@ const DashboardView = {
             <div class="kpi-icon" :class="k.cls" v-html="$icon(k.icon)"></div>
           </div>
           <div class="kpi-value" :class="k.cls">{{k.value}}</div>
-          <div class="kpi-trend" :class="k.trendCls">
+          <div class="kpi-trend" :class="k.trendCls" v-if="k.trend">
             <span v-if="k.trendCls==='up'" v-html="$icon('check')"></span>
             {{k.trend}}
           </div>

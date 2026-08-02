@@ -2964,7 +2964,7 @@ const MantenimientosView = {
       return e;
     });
     const openModal = (equipoId) => {
-      Object.assign(form, {equipoId: equipoId||'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente'});
+      Object.assign(form, {equipoId: equipoId||'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), tecnico:'', estado:'Pendiente'});
       modalOpen.value = true;
     };
     const closeModal = () => { modalOpen.value = false; };
@@ -3030,7 +3030,7 @@ const MantenimientosView = {
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
           body: JSON.stringify({
             equipoId: form.equipoId, tipo: form.tipo, descripcion: form.descripcion.trim(),
-            fechaProgramada: form.fechaProgramada, fechaEjecucion: form.fechaEjecucion || null,
+            fechaProgramada: form.fechaProgramada,
             tecnico: form.tecnico.trim(), estado: form.estado,
           }),
         });
@@ -3154,16 +3154,10 @@ const MantenimientosView = {
               <textarea class="form-textarea" :class="{err:errors.descripcion}" v-model="form.descripcion" placeholder="Detalle del mantenimiento…"></textarea>
               <div class="form-error" v-if="errors.descripcion">{{errors.descripcion}}</div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Fecha programada <span class="req">*</span></label>
-                <input class="form-input" :class="{err:errors.fechaProgramada}" type="date" :min="todayStr()" v-model="form.fechaProgramada"/>
-                <div class="form-error" v-if="errors.fechaProgramada">{{errors.fechaProgramada}}</div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Fecha de ejecución <span class="opt">(opcional)</span></label>
-                <input class="form-input" type="date" v-model="form.fechaEjecucion"/>
-              </div>
+            <div class="form-group">
+              <label class="form-label">Fecha programada <span class="req">*</span></label>
+              <input class="form-input" :class="{err:errors.fechaProgramada}" type="date" :min="todayStr()" v-model="form.fechaProgramada"/>
+              <div class="form-error" v-if="errors.fechaProgramada">{{errors.fechaProgramada}}</div>
             </div>
             <div class="form-group">
               <label class="form-label">Técnico <span class="req">*</span></label>

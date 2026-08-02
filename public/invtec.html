@@ -2698,7 +2698,7 @@ const EquipoFormView = {
     const isValid = computed(()=> !form.tipo || !form.marca || !form.modelo || !form.sn ? false : Object.keys(errors.value).length===0);
     const snToUpper = () => { form.sn = form.sn.toUpperCase(); };
     const nextCodigoFor = (tipo) => {
-      const tipoMap = {Laptop:'LP',Desktop:'DT',Monitor:'MN',Impresora:'IM',Servidor:'SR',Switch:'SW',Router:'RT',UPS:'UP'};
+      const tipoMap = {Laptop:'LP',Desktop:'DT',CPU:'CPU',Monitor:'MN',Impresora:'IM',Servidor:'SR',Switch:'SW',Router:'RT',UPS:'UP'};
       const base = 'INV-'+(tipoMap[tipo]||'EQ')+'-';
       const used = new Set(DB.equipos.map(e=>e.codigoInterno).filter(Boolean));
       if(isEdit.value && existing.value) used.delete(existing.value.codigoInterno);

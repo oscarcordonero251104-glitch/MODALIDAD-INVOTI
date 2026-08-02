@@ -567,11 +567,13 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 .alert-row.sev-red{border-left-color:var(--status-retired)}
 .alert-row.sev-gray{border-left-color:var(--status-storage)}
 .alert-row.sev-blue{border-left-color:var(--blue-500)}
+.alert-row.sev-green{border-left-color:var(--status-active)}
 .alert-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .alert-icon.amber{background:rgba(245,158,11,0.12);color:var(--status-repair)}
 .alert-icon.red{background:rgba(239,68,68,0.12);color:var(--status-retired)}
 .alert-icon.gray{background:rgba(100,116,139,0.15);color:var(--gray-400)}
 .alert-icon.blue{background:rgba(59,130,246,0.14);color:var(--blue-400)}
+.alert-icon.green{background:rgba(34,197,94,0.14);color:var(--status-active)}
 .alert-icon svg{width:17px;height:17px}
 .alert-body{flex:1;min-width:0}
 .alert-dismiss{flex-shrink:0;width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--gray-500);background:transparent;transition:all 0.2s var(--ease-expo)}
@@ -1179,7 +1181,9 @@ const dismissAlerta = (id) => {
     localStorage.setItem(ALERTS_DISMISSED_KEY, JSON.stringify(alertasState.dismissed));
   }
 };
-function computeAlertas(currentUserNombre) {
+function computeAlertas(currentUser) {
+  const currentUserNombre = currentUser ? currentUser.nombre : null;
+  const currentUserRol = currentUser ? currentUser.rol : null;
   const hoy = new Date();
   const en90 = new Date(); en90.setDate(hoy.getDate()+90);
   const list = [];
@@ -1216,7 +1220,23 @@ function computeAlertas(currentUserNombre) {
     });
   }
 
-  const orden = {red:0, blue:1, amber:2, gray:3};
+  if(currentUserRol==='admin'){
+    DB.mantenimientos.forEach(m=>{
+      const eqLabel = m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '—';
+      const eqSn = m.equipo ? m.equipo.sn : '—';
+      const tecLabel = m.tecnico ? ('Técnico: '+m.tecnico) : 'Sin técnico asignado';
+      if(m.estado==='En proceso'){
+        list.push({id:'enproceso-'+m.id, severidad:'blue', titulo:'Mantenimiento en proceso', sub:eqLabel, sn:eqSn, detalle:tecLabel, prioridad:0, equipoId:m.equipoId});
+      } else if(m.estado==='Completado' && m.fechaEjecucion){
+        const diasDesde = Math.floor((hoy-new Date(m.fechaEjecucion))/86400000);
+        if(diasDesde<=3){
+          list.push({id:'completado-'+m.id, severidad:'green', titulo:'Mantenimiento completado', sub:eqLabel, sn:eqSn, detalle:tecLabel, prioridad:0, equipoId:m.equipoId});
+        }
+      }
+    });
+  }
+
+  const orden = {red:0, blue:1, amber:2, green:3, gray:4};
   const visible = list.filter(a=> !alertasState.dismissed.includes(a.id));
   visible.sort((a,b)=> orden[a.severidad]-orden[b.severidad] || a.prioridad-b.prioridad);
   return visible;
@@ -1745,7 +1765,7 @@ const AppHeader = {
     const router = VueRouter.useRouter();
     const auth = inject(AUTH_KEY);
     const notifOpen = ref(false);
-    const alertas = computed(()=> computeAlertas(auth.user ? auth.user.nombre : null));
+    const alertas = computed(()=> computeAlertas(auth.user));
     const toggleNotif = () => { notifOpen.value = !notifOpen.value; };
     const goToAlerta = (a) => {
       notifOpen.value = false;
@@ -1924,7 +1944,7 @@ const DashboardView = {
       });
     });
 
-    const alertas = computed(()=> computeAlertas(auth.user ? auth.user.nombre : null).slice(0,8));
+    const alertas = computed(()=> computeAlertas(auth.user).slice(0,8));
 
     const actividades = computed(()=>{
       const items = [];

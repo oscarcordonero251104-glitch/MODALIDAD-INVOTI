@@ -566,10 +566,12 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 .alert-row.sev-amber{border-left-color:var(--status-repair)}
 .alert-row.sev-red{border-left-color:var(--status-retired)}
 .alert-row.sev-gray{border-left-color:var(--status-storage)}
+.alert-row.sev-blue{border-left-color:var(--blue-500)}
 .alert-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .alert-icon.amber{background:rgba(245,158,11,0.12);color:var(--status-repair)}
 .alert-icon.red{background:rgba(239,68,68,0.12);color:var(--status-retired)}
 .alert-icon.gray{background:rgba(100,116,139,0.15);color:var(--gray-400)}
+.alert-icon.blue{background:rgba(59,130,246,0.14);color:var(--blue-400)}
 .alert-icon svg{width:17px;height:17px}
 .alert-body{flex:1;min-width:0}
 .alert-dismiss{flex-shrink:0;width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--gray-500);background:transparent;transition:all 0.2s var(--ease-expo)}
@@ -1177,7 +1179,7 @@ const dismissAlerta = (id) => {
     localStorage.setItem(ALERTS_DISMISSED_KEY, JSON.stringify(alertasState.dismissed));
   }
 };
-function computeAlertas() {
+function computeAlertas(currentUserNombre) {
   const hoy = new Date();
   const en90 = new Date(); en90.setDate(hoy.getDate()+90);
   const list = [];
@@ -1204,7 +1206,17 @@ function computeAlertas() {
     }
   });
 
-  const orden = {red:0, amber:1, gray:2};
+  if(currentUserNombre){
+    DB.mantenimientos.forEach(m=>{
+      if(m.tecnico===currentUserNombre && (m.estado==='Pendiente' || m.estado==='En proceso')){
+        const eqLabel = m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '—';
+        const eqSn = m.equipo ? m.equipo.sn : '—';
+        list.push({id:'asignado-'+m.id, severidad:'blue', titulo:'Mantenimiento asignado a vos', sub:eqLabel, sn:eqSn, detalle:'Programado para '+m.fechaProgramada, prioridad:0, equipoId:m.equipoId});
+      }
+    });
+  }
+
+  const orden = {red:0, blue:1, amber:2, gray:3};
   const visible = list.filter(a=> !alertasState.dismissed.includes(a.id));
   visible.sort((a,b)=> orden[a.severidad]-orden[b.severidad] || a.prioridad-b.prioridad);
   return visible;
@@ -1733,7 +1745,7 @@ const AppHeader = {
     const router = VueRouter.useRouter();
     const auth = inject(AUTH_KEY);
     const notifOpen = ref(false);
-    const alertas = computed(()=> computeAlertas());
+    const alertas = computed(()=> computeAlertas(auth.user ? auth.user.nombre : null));
     const toggleNotif = () => { notifOpen.value = !notifOpen.value; };
     const goToAlerta = (a) => {
       notifOpen.value = false;
@@ -1793,7 +1805,7 @@ const AppHeader = {
           <div class="notif-panel-head">Notificaciones ({{alertas.length}})</div>
           <div v-if="!alertas.length" class="notif-empty">No hay notificaciones</div>
           <div v-for="(a,i) in alertas" :key="i" :class="['alert-row','sev-'+a.severidad]" style="cursor:pointer" @click="goToAlerta(a)">
-            <div :class="['alert-icon', a.severidad==='amber'?'amber':a.severidad==='red'?'red':'gray']" v-html="$icon('alert')"></div>
+            <div :class="['alert-icon', a.severidad]" v-html="$icon('alert')"></div>
             <div class="alert-body">
               <div class="alert-title">{{a.titulo}}</div>
               <div class="alert-sub">{{a.sub}} · <span class="sn-tag">{{a.sn}}</span> · {{a.detalle}}</div>
@@ -1845,6 +1857,7 @@ const AppLayout = {
    ============================================================ */
 const DashboardView = {
   setup(){
+    const auth = inject(AUTH_KEY);
     const loading = ref(true);
     onMounted(()=>{ setTimeout(()=> loading.value=false, 700); });
     watch(()=>DB.ready, (r)=>{ if(r) loading.value=false; });
@@ -1911,7 +1924,7 @@ const DashboardView = {
       });
     });
 
-    const alertas = computed(()=> computeAlertas().slice(0,8));
+    const alertas = computed(()=> computeAlertas(auth.user ? auth.user.nombre : null).slice(0,8));
 
     const actividades = computed(()=>{
       const items = [];
@@ -2024,7 +2037,7 @@ const DashboardView = {
           </div>
           <div>
             <div v-for="(a,i) in alertas" :key="i" :class="['alert-row','sev-'+a.severidad]">
-              <div :class="['alert-icon', a.severidad==='amber'?'amber':a.severidad==='red'?'red':'gray']" v-html="$icon('alert')"></div>
+              <div :class="['alert-icon', a.severidad]" v-html="$icon('alert')"></div>
               <div class="alert-body">
                 <div class="alert-title">{{a.titulo}}</div>
                 <div class="alert-sub">{{a.sub}} · <span class="sn-tag">{{a.sn}}</span> · {{a.detalle}}</div>

@@ -866,7 +866,7 @@ const I = {
 };
 const iconFor = (name) => I[name] || '';
 const typeIcon = (tipo) => {
-  const map = {Laptop:'laptop',Desktop:'desktop',CPU:'cpu',Monitor:'monitor',Impresora:'printer',Servidor:'server',Switch:'switch',Router:'router',UPS:'ups'};
+  const map = {Laptop:'laptop',CPU:'cpu',Monitor:'monitor',Impresora:'printer',Servidor:'server',Switch:'switch',Router:'router',UPS:'ups'};
   return I[map[tipo] || 'monitor'];
 };
 
@@ -1902,7 +1902,7 @@ const DashboardView = {
     ]);
 
     const barData = computed(()=>{
-      const tipos = ['Laptop','Desktop','CPU','Monitor','Impresora','Servidor','Switch','Router','UPS'];
+      const tipos = ['Laptop','CPU','Monitor','Impresora','Servidor','Switch','Router','UPS'];
       return tipos.map(t=>({label:t, value: DB.equipos.filter(e=>e.tipo===t).length})).filter(b=>b.value>0);
     });
     const maxBar = computed(()=> Math.max(...barData.value.map(b=>b.value)));
@@ -2668,7 +2668,7 @@ const EquipoFormView = {
       });
     }, {immediate:true});
 
-    const tipoOptions = ['Laptop','Desktop','CPU','Monitor','Impresora','Servidor','Switch','Router','UPS'];
+    const tipoOptions = ['Laptop','CPU','Monitor','Impresora','Servidor','Switch','Router','UPS'];
     const estadoOptions = [{v:'activo',l:'Activo'},{v:'almacen',l:'En Almacén'},{v:'reparacion',l:'En Reparación'},{v:'baja',l:'Baja'}];
     const addUbicacion = () => {
       const nombre = prompt('Nombre de la nueva ubicación:');
@@ -2698,7 +2698,7 @@ const EquipoFormView = {
     const isValid = computed(()=> !form.tipo || !form.marca || !form.modelo || !form.sn ? false : Object.keys(errors.value).length===0);
     const snToUpper = () => { form.sn = form.sn.toUpperCase(); };
     const nextCodigoFor = (tipo) => {
-      const tipoMap = {Laptop:'LP',Desktop:'DT',CPU:'CPU',Monitor:'MN',Impresora:'IM',Servidor:'SR',Switch:'SW',Router:'RT',UPS:'UP'};
+      const tipoMap = {Laptop:'LP',CPU:'CPU',Monitor:'MN',Impresora:'IM',Servidor:'SR',Switch:'SW',Router:'RT',UPS:'UP'};
       const base = 'INV-'+(tipoMap[tipo]||'EQ')+'-';
       const used = new Set(DB.equipos.map(e=>e.codigoInterno).filter(Boolean));
       if(isEdit.value && existing.value) used.delete(existing.value.codigoInterno);

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdmin, hashPassword } from '@/lib/auth'
 
 // Listar TODOS los usuarios (incluye pendientes) — solo admin
 export async function GET(request: Request) {
@@ -13,6 +13,7 @@ export async function GET(request: Request) {
         nombre: true,
         rol: true,
         estado: true,
+        solicitudReset: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -34,14 +35,25 @@ export async function PATCH(
     requireAdmin(request)
     const { id } = await params
     const body = await request.json()
-    const { accion } = body // "aprobar" | "rechazar"
+    const { accion, nuevaPassword } = body // "aprobar" | "rechazar" | "desactivar" | "resetPassword"
 
     const user = await db.user.findUnique({ where: { id } })
     if (!user) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    if (accion === 'aprobar') {
+    if (accion === 'resetPassword') {
+      if (!nuevaPassword || nuevaPassword.length < 8) {
+        return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 })
+      }
+      const hashed = await hashPassword(nuevaPassword)
+      const updated = await db.user.update({
+        where: { id },
+        data: { password: hashed, solicitudReset: null },
+        select: { id: true, usuario: true, nombre: true, rol: true, estado: true, solicitudReset: true },
+      })
+      return NextResponse.json({ user: updated, message: 'Contraseña restablecida' })
+    } else if (accion === 'aprobar') {
       const updated = await db.user.update({
         where: { id },
         data: { estado: 'activo' },

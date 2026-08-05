@@ -988,6 +988,13 @@ async function initMantenimientos() {
   }
 }
 
+async function initUsuarios() {
+  try {
+    const data = await apiFetch('/api/usuarios');
+    DB.usuarios = data.users;
+  } catch(e) { /* silencioso: solo admin puede listar usuarios */ }
+}
+
 function transformEquipo(eq) {
   return {
     ...eq,
@@ -1234,6 +1241,12 @@ function computeAlertas(currentUser) {
         }
       }
     });
+
+    (DB.usuarios||[]).forEach(u=>{
+      if(u.solicitudReset){
+        list.push({id:'reset-'+u.id, severidad:'amber', titulo:'Solicitud de restablecimiento de contraseña', sub:u.nombre, sn:u.usuario, detalle:'Pidió recuperar el acceso', prioridad:0, ruta:'/admin/usuarios'});
+      }
+    });
   }
 
   const orden = {red:0, blue:1, amber:2, green:3, gray:4};
@@ -1431,7 +1444,40 @@ const LoginPage = {
         toast.error(e.message || 'Error al iniciar sesión');
       }
     };
-    return { form, loading, showPass, btnLabel, selectRol, fillDemo, submit };
+
+    const forgotOpen = ref(false);
+    const forgotForm = reactive({nombre:'', usuario:''});
+    const forgotSending = ref(false);
+    const openForgot = () => {
+      Object.assign(forgotForm, {nombre:'', usuario:''});
+      forgotOpen.value = true;
+    };
+    const closeForgot = () => { forgotOpen.value = false; };
+    const submitForgot = async () => {
+      if(!forgotForm.nombre.trim() || !forgotForm.usuario.trim()){
+        toast.error('Completá tu nombre y usuario');
+        return;
+      }
+      forgotSending.value = true;
+      try {
+        const res = await fetch('/api/auth/solicitar-reset', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ nombre: forgotForm.nombre.trim(), usuario: forgotForm.usuario.trim() }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || 'Error al enviar la solicitud');
+        toast.success(data.message);
+        forgotOpen.value = false;
+      } catch(e) {
+        toast.error(e.message);
+      } finally {
+        forgotSending.value = false;
+      }
+    };
+
+    return { form, loading, showPass, btnLabel, selectRol, fillDemo, submit,
+      forgotOpen, forgotForm, forgotSending, openForgot, closeForgot, submitForgot };
   },
   template:`
   <div class="auth">
@@ -1511,7 +1557,7 @@ const LoginPage = {
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px">
             <label class="form-checkbox"><input type="checkbox" v-model="form.remember"/> Recordar este dispositivo</label>
-            <a class="form-link" href="#" @click.prevent>¿Olvidaste tu contraseña?</a>
+            <a class="form-link" href="#" @click.prevent="openForgot">¿Olvidaste tu contraseña?</a>
           </div>
           <button type="submit" class="btn btn-primary btn-lg btn-block" :disabled="loading">
             <span v-if="loading" class="btn-loading"><span class="spinner"></span> Verificando credenciales…</span>
@@ -1519,6 +1565,35 @@ const LoginPage = {
           </button>
         </form>
         <div class="auth-footer">¿No tenés credenciales? Contactá al administrador · <router-link to="/registro" class="form-link">Solicitar acceso</router-link></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" v-if="forgotOpen" @click.self="closeForgot">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h3>Recuperar acceso</h3>
+          <button class="modal-close" @click="closeForgot" v-html="$icon('x')"></button>
+        </div>
+        <form @submit.prevent="submitForgot">
+          <div class="modal-body">
+            <p style="color:var(--gray-400);font-size:13px;margin:0 0 16px">Escribí tu nombre y usuario tal como están registrados. Le va a llegar una solicitud al administrador para que te ayude a recuperar el acceso.</p>
+            <div class="form-group">
+              <label class="form-label">Nombre <span class="req">*</span></label>
+              <input class="form-input" v-model="forgotForm.nombre" placeholder="Nombre completo"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Usuario <span class="req">*</span></label>
+              <input class="form-input" v-model="forgotForm.usuario" placeholder="Ej: mgarcia o 00123" style="font-family:var(--font-mono);text-transform:uppercase"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px">
+            <button type="button" class="btn btn-outline" @click="closeForgot">Cancelar</button>
+            <button type="submit" class="btn btn-primary" :disabled="forgotSending">
+              <span v-if="forgotSending" class="btn-loading"><span class="spinner"></span> Enviando…</span>
+              <span v-else>Enviar solicitud</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>`
@@ -1769,7 +1844,8 @@ const AppHeader = {
     const toggleNotif = () => { notifOpen.value = !notifOpen.value; };
     const goToAlerta = (a) => {
       notifOpen.value = false;
-      if(a.equipoId) router.push('/equipos/'+a.equipoId);
+      if(a.ruta) router.push(a.ruta);
+      else if(a.equipoId) router.push('/equipos/'+a.equipoId);
     };
     const crumbs = computed(() => {
       const parts = route.path.split('/').filter(Boolean);
@@ -1854,6 +1930,7 @@ const AppLayout = {
       // Cargar equipos y mantenimientos desde la API cuando el usuario está autenticado
       initDB();
       initMantenimientos();
+      if(auth.user && auth.user.rol==='admin') initUsuarios();
     });
     return { ui };
   },
@@ -3294,6 +3371,7 @@ const UsuariosView = {
       try {
         const data = await apiFetch('/api/usuarios');
         users.value = data.users;
+        DB.usuarios = data.users;
         loadError.value = false;
       } catch(e) { toast.error('No se pudo cargar la lista de usuarios'); loadError.value = true; }
       loading.value = false;
@@ -3349,7 +3427,36 @@ const UsuariosView = {
       } catch(e) { toast.error(e.message); }
     };
     const formatDate = (d) => new Date(d).toLocaleString('es-AR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-    return { loading, users, tab, counts, filtered, rolBadge, rolLabel, estadoBadge, estadoLabel, aprobar, rechazar, desactivar, formatDate, refresh, selectTab, loadError };
+
+    const resetModalOpen = ref(false);
+    const resetTarget = ref(null);
+    const resetForm = reactive({ nuevaPassword:'' });
+    const resetSaving = ref(false);
+    const openReset = (u) => {
+      resetTarget.value = u;
+      resetForm.nuevaPassword = '';
+      resetModalOpen.value = true;
+    };
+    const closeReset = () => { resetModalOpen.value = false; };
+    const submitReset = async () => {
+      if(!resetForm.nuevaPassword || resetForm.nuevaPassword.length < 8){
+        toast.error('La contraseña debe tener al menos 8 caracteres');
+        return;
+      }
+      resetSaving.value = true;
+      try {
+        await apiFetch('/api/usuarios/' + resetTarget.value.id, {
+          method:'PATCH',
+          body: JSON.stringify({ accion:'resetPassword', nuevaPassword: resetForm.nuevaPassword }),
+        });
+        toast.success('Contraseña restablecida para ' + resetTarget.value.nombre);
+        resetModalOpen.value = false;
+        await loadUsers();
+      } catch(e) { toast.error(e.message); } finally { resetSaving.value = false; }
+    };
+
+    return { loading, users, tab, counts, filtered, rolBadge, rolLabel, estadoBadge, estadoLabel, aprobar, rechazar, desactivar, formatDate, refresh, selectTab, loadError,
+      resetModalOpen, resetTarget, resetForm, resetSaving, openReset, closeReset, submitReset };
   },
   template:`
   <div>
@@ -3404,6 +3511,7 @@ const UsuariosView = {
                   <div style="display:flex;align-items:center;gap:10px">
                     <div class="user-avatar" style="width:30px;height:30px;font-size:13px">{{u.nombre.charAt(0)}}</div>
                     <strong style="color:var(--gray-100)">{{u.nombre}}</strong>
+                    <span v-if="u.solicitudReset" class="badge repair" title="Pidió recuperar su contraseña"><span class="bdot"></span>Solicitó reset</span>
                   </div>
                 </td>
                 <td><span :class="['badge', rolBadge(u.rol)]"><span class="bdot"></span>{{rolLabel(u.rol)}}</span></td>
@@ -3413,6 +3521,7 @@ const UsuariosView = {
                   <div class="row-actions" style="justify-content:flex-end">
                     <button v-if="u.estado==='pendiente'" class="btn btn-primary btn-sm" @click="aprobar(u.id)"><span v-html="$icon('check')"></span>Aprobar</button>
                     <button v-if="u.estado==='pendiente'" class="btn btn-danger btn-sm" @click="rechazar(u.id)"><span v-html="$icon('x')"></span>Rechazar</button>
+                    <button v-if="u.estado==='activo'" class="btn btn-outline btn-sm" @click="openReset(u)">Restablecer contraseña</button>
                     <button v-if="u.estado==='activo'" class="btn btn-outline btn-sm" @click="desactivar(u.id)">Desactivar</button>
                   </div>
                 </td>
@@ -3422,6 +3531,31 @@ const UsuariosView = {
         </div>
       </div>
     </template>
+
+    <div class="modal-overlay" v-if="resetModalOpen" @click.self="closeReset">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h3>Restablecer contraseña</h3>
+          <button class="modal-close" @click="closeReset" v-html="$icon('x')"></button>
+        </div>
+        <form @submit.prevent="submitReset">
+          <div class="modal-body">
+            <p style="color:var(--gray-400);font-size:13px;margin:0 0 16px">Le vas a asignar una contraseña nueva a <strong style="color:var(--gray-100)">{{resetTarget ? resetTarget.nombre : ''}}</strong> ({{resetTarget ? resetTarget.usuario : ''}}). Avisale la nueva contraseña por fuera del sistema.</p>
+            <div class="form-group">
+              <label class="form-label">Contraseña nueva <span class="req">*</span></label>
+              <input class="form-input" type="text" v-model="resetForm.nuevaPassword" placeholder="Mínimo 8 caracteres"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px">
+            <button type="button" class="btn btn-outline" @click="closeReset">Cancelar</button>
+            <button type="submit" class="btn btn-primary" :disabled="resetSaving">
+              <span v-if="resetSaving" class="btn-loading"><span class="spinner"></span> Guardando…</span>
+              <span v-else>Restablecer</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>`
 };
 

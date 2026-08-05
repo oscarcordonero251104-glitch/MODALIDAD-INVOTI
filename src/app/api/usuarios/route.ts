@@ -12,6 +12,7 @@ export async function GET(request: Request) {
         nombre: true,
         rol: true,
         estado: true,
+        solicitudReset: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },

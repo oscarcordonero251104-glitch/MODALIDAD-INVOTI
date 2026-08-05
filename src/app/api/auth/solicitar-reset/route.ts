@@ -17,7 +17,9 @@ export async function POST(request: Request) {
       where: { usuario: usuario.toUpperCase() },
     })
 
-    if (user && user.nombre.trim().toLowerCase() === nombre.trim().toLowerCase()) {
+    const normalizar = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
+
+    if (user && normalizar(user.nombre) === normalizar(nombre)) {
       await db.user.update({
         where: { id: user.id },
         data: { solicitudReset: new Date() },

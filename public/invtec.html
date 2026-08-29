@@ -2743,11 +2743,20 @@ const EquipoFormView = {
       if(!form.modelo) e.modelo='Requerido';
       if(!form.sn) e.sn='Requerido';
       else if(!/^[A-Z0-9-]+$/.test(form.sn)) e.sn='Solo mayúsculas, números y guiones';
-      if(form.costo && Number(form.costo)<0) e.costo='Debe ser positivo';
-      if(form.fechaAdquisicion && form.fechaGarantia && form.fechaGarantia<form.fechaAdquisicion) e.fechaGarantia='Debe ser posterior a la adquisición';
+      if(!form.ubicacion) e.ubicacion='Requerido';
+      if(!form.responsable) e.responsable='Requerido';
+      if(!form.proveedor) e.proveedor='Requerido';
+      if(!form.factura) e.factura='Requerido';
+      if(form.costo===''||form.costo===null||form.costo===undefined) e.costo='Requerido';
+      else if(Number(form.costo)<0) e.costo='Debe ser positivo';
+      if(form.vidaUtil===''||form.vidaUtil===null||form.vidaUtil===undefined) e.vidaUtil='Requerido';
+      if(!form.fechaAdquisicion) e.fechaAdquisicion='Requerido';
+      if(!form.fechaGarantia) e.fechaGarantia='Requerido';
+      else if(form.fechaAdquisicion && form.fechaGarantia<form.fechaAdquisicion) e.fechaGarantia='Debe ser posterior a la adquisición';
+      if(!(form.especificaciones||'').trim()) e.especificaciones='Requerido';
       return e;
     });
-    const isValid = computed(()=> !form.tipo || !form.marca || !form.modelo || !form.sn ? false : Object.keys(errors.value).length===0);
+    const isValid = computed(()=> Object.keys(errors.value).length===0);
     const snToUpper = () => { form.sn = form.sn.toUpperCase(); };
     const nextCodigoFor = (tipo) => {
       const tipoMap = {Laptop:'LP',CPU:'CPU',Monitor:'MN',Impresora:'IM',Servidor:'SR',Switch:'SW',Router:'RT',UPS:'UP'};
@@ -2759,10 +2768,9 @@ const EquipoFormView = {
       do { code = base+String(n).padStart(3,'0'); n++; } while(used.has(code));
       return code;
     };
-    const genCodigo = () => {
-      form.codigoInterno = nextCodigoFor(form.tipo);
-      toast.info('Código generado');
-    };
+    watch(() => isValid.value ? form.tipo : null, (t) => {
+      if(!isEdit.value) form.codigoInterno = t ? nextCodigoFor(t) : '';
+    });
 
     const saving = ref(false);
     const buildData = () => {
@@ -2830,7 +2838,7 @@ const EquipoFormView = {
     const onDrop = (e) => { isDragging.value=false; readImageFile(e.dataTransfer.files && e.dataTransfer.files[0]); };
     const removePhoto = (e) => { e.stopPropagation(); form.foto=''; photoError.value=''; };
 
-    return { DB, form, isEdit, tipoOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, genCodigo, save, saving,
+    return { DB, form, isEdit, tipoOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, save, saving,
       fileInput, photoError, isDragging, triggerFileInput, onFileSelect, onDrop, removePhoto,
       goBack:()=>router.back() };
   },
@@ -2884,11 +2892,9 @@ const EquipoFormView = {
             <div class="form-hint" v-else>Número de serie real del fabricante (etiqueta del equipo)</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Código interno <span class="opt">(opcional)</span></label>
-            <div class="input-affix">
-              <input class="form-input" v-model="form.codigoInterno" placeholder="INV-LP-001" style="font-family:var(--font-mono)"/>
-              <button type="button" class="btn btn-outline btn-sm btn-inside" @click="genCodigo">Generar</button>
-            </div>
+            <label class="form-label">Código interno</label>
+            <input class="form-input" :value="form.codigoInterno || 'Se genera al completar el formulario'" readonly style="font-family:var(--font-mono);opacity:0.75;cursor:not-allowed"/>
+            <div class="form-hint">Se genera automáticamente al llenar todos los campos obligatorios y nunca se repite</div>
           </div>
         </div>
       </div>
@@ -2897,19 +2903,21 @@ const EquipoFormView = {
         <div class="panel-head"><div class="panel-title">Ubicación y responsable</div></div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Ubicación</label>
+            <label class="form-label">Ubicación <span class="req">*</span></label>
             <div class="input-affix">
-              <select class="form-select" v-model="form.ubicacion">
+              <select class="form-select" :class="{err:errors.ubicacion}" v-model="form.ubicacion">
                 <option value="">Seleccionar…</option>
                 <option v-for="u in DB.ubicaciones" :key="u" :value="u">{{u}}</option>
               </select>
               <button type="button" class="btn btn-outline btn-sm btn-inside" @click="addUbicacion">+ Nueva</button>
             </div>
+            <div class="form-error" v-if="errors.ubicacion">{{errors.ubicacion}}</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Responsable</label>
-            <input class="form-input" v-model="form.responsable" placeholder="Nombre del responsable" list="users-list"/>
+            <label class="form-label">Responsable <span class="req">*</span></label>
+            <input class="form-input" :class="{err:errors.responsable}" v-model="form.responsable" placeholder="Nombre del responsable" list="users-list"/>
             <datalist id="users-list"><option v-for="u in DB.usuarios" :key="u.id" :value="u.nombre"/></datalist>
+            <div class="form-error" v-if="errors.responsable">{{errors.responsable}}</div>
           </div>
         </div>
       </div>
@@ -2918,33 +2926,37 @@ const EquipoFormView = {
         <div class="panel-head"><div class="panel-title">Adquisición y garantía</div></div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Proveedor</label>
-            <input class="form-input" v-model="form.proveedor" placeholder="Dell Technologies"/>
+            <label class="form-label">Proveedor <span class="req">*</span></label>
+            <input class="form-input" :class="{err:errors.proveedor}" v-model="form.proveedor" placeholder="Dell Technologies"/>
+            <div class="form-error" v-if="errors.proveedor">{{errors.proveedor}}</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Factura</label>
-            <input class="form-input" v-model="form.factura" placeholder="FAC-2024-0001" style="font-family:var(--font-mono)"/>
+            <label class="form-label">Factura <span class="req">*</span></label>
+            <input class="form-input" :class="{err:errors.factura}" v-model="form.factura" placeholder="FAC-2024-0001" style="font-family:var(--font-mono)"/>
+            <div class="form-error" v-if="errors.factura">{{errors.factura}}</div>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Costo</label>
+            <label class="form-label">Costo <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.costo}" type="number" min="0" v-model="form.costo" placeholder="0"/>
             <div class="form-error" v-if="errors.costo">{{errors.costo}}</div>
             <div class="form-hint" v-else>C$ Córdobas nicaragüenses</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Vida útil (años)</label>
-            <input class="form-input" type="number" min="1" v-model="form.vidaUtil"/>
+            <label class="form-label">Vida útil (años) <span class="req">*</span></label>
+            <input class="form-input" :class="{err:errors.vidaUtil}" type="number" min="1" v-model="form.vidaUtil"/>
+            <div class="form-error" v-if="errors.vidaUtil">{{errors.vidaUtil}}</div>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Fecha de adquisición</label>
-            <input class="form-input" type="date" v-model="form.fechaAdquisicion"/>
+            <label class="form-label">Fecha de adquisición <span class="req">*</span></label>
+            <input class="form-input" :class="{err:errors.fechaAdquisicion}" type="date" v-model="form.fechaAdquisicion"/>
+            <div class="form-error" v-if="errors.fechaAdquisicion">{{errors.fechaAdquisicion}}</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Fecha de garantía</label>
+            <label class="form-label">Fecha de garantía <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.fechaGarantia}" type="date" v-model="form.fechaGarantia"/>
             <div class="form-error" v-if="errors.fechaGarantia">{{errors.fechaGarantia}}</div>
           </div>
@@ -2954,12 +2966,13 @@ const EquipoFormView = {
       <div class="panel" style="margin-bottom:16px">
         <div class="panel-head"><div class="panel-title">Especificaciones y extras</div></div>
         <div class="form-group">
-          <label class="form-label">Especificaciones técnicas <span class="opt">(opcional)</span></label>
-          <textarea class="form-textarea" v-model="form.especificaciones" placeholder='Podés escribir texto libre (ej: Intel i5, 8GB RAM, 256GB SSD) o formato JSON: {"cpu":"","ram":""}'></textarea>
-          <div class="form-hint">Texto libre o JSON — lo que escribas se guarda igual.</div>
+          <label class="form-label">Especificaciones técnicas <span class="req">*</span></label>
+          <textarea class="form-textarea" :class="{err:errors.especificaciones}" v-model="form.especificaciones" placeholder='Podés escribir texto libre (ej: Intel i5, 8GB RAM, 256GB SSD) o formato JSON: {"cpu":"","ram":""}'></textarea>
+          <div class="form-error" v-if="errors.especificaciones">{{errors.especificaciones}}</div>
+          <div class="form-hint" v-else>Texto libre o JSON — lo que escribas se guarda igual.</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Foto del equipo</label>
+          <label class="form-label">Foto del equipo <span class="opt">(opcional)</span></label>
           <input ref="fileInput" type="file" accept="image/png,image/jpeg" style="display:none" @change="onFileSelect"/>
           <div v-if="!form.foto" class="dropzone" :class="{dragging:isDragging}" @click="triggerFileInput"
                @dragover.prevent="isDragging=true" @dragleave.prevent="isDragging=false" @drop.prevent="onDrop">
@@ -2977,7 +2990,7 @@ const EquipoFormView = {
           <div class="form-error" v-if="photoError">{{photoError}}</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Notas</label>
+          <label class="form-label">Notas <span class="opt">(opcional)</span></label>
           <textarea class="form-textarea" v-model="form.notas" placeholder="Observaciones adicionales…" style="font-family:var(--font-body);min-height:60px"></textarea>
         </div>
       </div>

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>INV-OTI — Sistema de Inventario de Equipos Informáticos</title>
 <meta name="description" content="INV-OTI — PWA offline-first para la gestión profesional de inventario de equipos informáticos. Oficina de Tecnología de la Información." />
 <meta name="theme-color" content="#030810" />
+<meta name="google" content="notranslate" />
 <link rel="icon" type="image/png" href="/logo-enatrel.png" />
 <link rel="apple-touch-icon" href="/logo-enatrel.png" />
 <link rel="manifest" href="/manifest.json" />
@@ -1358,18 +1359,6 @@ const NavBar = {
    ============================================================ */
 const LandingPage = {
   components:{NavBar,LogoMark},
-  setup(){
-    const goTo = (id) => { const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); };
-    const features = [
-      {ic:'qr',t:'Escaneo QR',d:'Captura instantánea de equipos mediante códigos QR generados y validados localmente.'},
-      {ic:'alert',t:'Alertas Automáticas',d:'Notificaciones proactivas de garantías por vencer, mantenimientos pendientes y equipos sin movimiento.'},
-      {ic:'shield',t:'Auditoría Completa',d:'Registro detallado de todos los movimientos, mantenimientos y cambios de estado de cada equipo.'},
-      {ic:'report',t:'Reportes en Tiempo Real',d:'Dashboards actualizados al instante con métricas operativas, estado de flota y alertas críticas.'},
-      {ic:'wrench',t:'Mantenimiento Preventivo',d:'Calendarios y alertas configurables para mantenimiento programado, evitando fallas en equipos críticos.'},
-      {ic:'users',t:'Control por Roles',d:'Permisos granulares diferenciados para personal administrativo y técnico con auditoría completa.'},
-    ];
-    return { goTo, features };
-  },
   template:`
   <div>
     <nav-bar/>
@@ -1386,19 +1375,6 @@ const LandingPage = {
         <div class="portal-actions">
           <router-link to="/login" class="btn btn-primary btn-lg">Ingresar al sistema</router-link>
           <router-link to="/registro" class="btn btn-outline btn-lg">Solicitar acceso</router-link>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="features">
-      <div class="section-inner">
-        <div class="section-label">FUNCIONALIDADES</div>
-        <h2 class="section-title">Todo lo que necesitás para gestionar tu inventario técnico</h2>
-        <div class="features-grid">
-          <div class="feature-card" v-for="(f,i) in features" :key="i">
-            <div class="feature-icon" v-html="$icon(f.ic)"></div>
-            <h3>{{f.t}}</h3><p>{{f.d}}</p>
-          </div>
         </div>
       </div>
     </section>

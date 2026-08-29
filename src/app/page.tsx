@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 
 export default function Home() {
   useEffect(() => {
-    window.location.replace('/invtec.html#/login')
+    window.location.replace('/invtec.html#/')
   }, [])
 
   return (
@@ -22,7 +22,7 @@ export default function Home() {
         letterSpacing: '0.1em',
       }}
     >
-      <meta httpEquiv="refresh" content="0; url=/invtec.html#/login" />
+      <meta httpEquiv="refresh" content="0; url=/invtec.html#/" />
       <span>CARGANDO INV-OTI…</span>
     </div>
   )

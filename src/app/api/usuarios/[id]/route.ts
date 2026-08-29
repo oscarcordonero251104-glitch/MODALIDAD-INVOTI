@@ -35,7 +35,7 @@ export async function PATCH(
     requireAdmin(request)
     const { id } = await params
     const body = await request.json()
-    const { accion, nuevaPassword } = body // "aprobar" | "rechazar" | "desactivar" | "resetPassword"
+    const { accion, nuevaPassword } = body // "aprobar" | "rechazar" | "desactivar" | "reactivar" | "eliminar" | "resetPassword"
 
     const user = await db.user.findUnique({ where: { id } })
     if (!user) {
@@ -70,6 +70,19 @@ export async function PATCH(
         select: { id: true, usuario: true, nombre: true, rol: true, estado: true },
       })
       return NextResponse.json({ user: updated, message: 'Usuario desactivado' })
+    } else if (accion === 'reactivar') {
+      const updated = await db.user.update({
+        where: { id },
+        data: { estado: 'activo' },
+        select: { id: true, usuario: true, nombre: true, rol: true, estado: true },
+      })
+      return NextResponse.json({ user: updated, message: 'Usuario reactivado' })
+    } else if (accion === 'eliminar') {
+      if (user.estado !== 'inactivo') {
+        return NextResponse.json({ error: 'Solo se pueden eliminar usuarios inactivos' }, { status: 400 })
+      }
+      await db.user.delete({ where: { id } })
+      return NextResponse.json({ message: 'Usuario eliminado' })
     } else {
       return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
     }

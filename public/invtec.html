@@ -1398,7 +1398,7 @@ const LoginPage = {
   components:{LogoMark},
   setup(){
     const router = VueRouter.useRouter();
-    const form = reactive({usuario:'',password:'',remember:false,rol:'admin'});
+    const form = reactive({usuario:'',password:'',rol:'admin'});
     const loading = ref(false);
     const showPass = ref(false);
     const btnLabel = computed(()=> 'Ingresar como ' + (form.rol==='admin' ? 'Administrativo' : 'Técnico'));
@@ -1412,6 +1412,12 @@ const LoginPage = {
       loading.value = true;
       try {
         const user = await auth.login(form.usuario, form.password);
+        if(user.rol !== form.rol){
+          auth.logout();
+          loading.value = false;
+          toast.error('El usuario no corresponde al tipo de personal seleccionado');
+          return;
+        }
         loading.value = false;
         toast.success('Acceso concedido · ' + (user.rol==='admin' ? 'Personal Administrativo' : 'Personal Técnico'));
         router.push('/dashboard');
@@ -1531,8 +1537,7 @@ const LoginPage = {
               <div class="toggle-eye" @click="showPass=!showPass" v-html="$icon(showPass ? 'eyeOff' : 'eye')"></div>
             </div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px">
-            <label class="form-checkbox"><input type="checkbox" v-model="form.remember"/> Recordar este dispositivo</label>
+          <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:20px;gap:12px">
             <a class="form-link" href="#" @click.prevent="openForgot">¿Olvidaste tu contraseña?</a>
           </div>
           <button type="submit" class="btn btn-primary btn-lg btn-block" :disabled="loading">
@@ -1540,7 +1545,6 @@ const LoginPage = {
             <span v-else>{{btnLabel}}</span>
           </button>
         </form>
-        <div class="auth-footer">¿No tenés credenciales? Contactá al administrador · <router-link to="/registro" class="form-link">Solicitar acceso</router-link></div>
       </div>
     </div>
 
@@ -1582,12 +1586,12 @@ const RegisterPage = {
   components:{LogoMark},
   setup(){
     const router = VueRouter.useRouter();
-    const form = reactive({nombre:'',apellido:'',usuario:'',rol:'tecnico',password:'',confirm:'',terms:false});
+    const form = reactive({nombre:'',apellido:'',usuario:'',rol:'tecnico',password:'',confirm:''});
     const showPass = ref(false);
     const showConfirm = ref(false);
     const showLenHint = computed(()=> form.password.length>0 && form.password.length<8);
     const showMismatch = computed(()=> form.confirm.length>0 && form.password!==form.confirm);
-    const isValid = computed(()=> form.nombre && form.apellido && form.usuario && form.password.length>=8 && form.password===form.confirm && form.terms);
+    const isValid = computed(()=> form.nombre && form.apellido && form.usuario && form.password.length>=8 && form.password===form.confirm);
     const loading = ref(false);
     const pendingApproval = ref(null);
     const submit = async () => {
@@ -1676,16 +1680,16 @@ const RegisterPage = {
         <p class="auth-sub">Completá tus datos institucionales para solicitar acceso.</p>
         <form @submit.prevent="submit">
           <div class="form-group"><div class="form-row">
-            <div><label class="form-label">Nombre</label><input class="form-input" v-model="form.nombre" placeholder="María"/></div>
-            <div><label class="form-label">Apellido</label><input class="form-input" v-model="form.apellido" placeholder="Fernández"/></div>
+            <div><label class="form-label">Nombre <span class="req">*</span></label><input class="form-input" v-model="form.nombre" placeholder="María" required/></div>
+            <div><label class="form-label">Apellido <span class="req">*</span></label><input class="form-input" v-model="form.apellido" placeholder="Fernández" required/></div>
           </div></div>
           <div class="form-group">
-            <label class="form-label">Usuario</label>
-            <input class="form-input" v-model="form.usuario" placeholder="Ej: mgarcia" style="font-family:var(--font-mono);text-transform:uppercase"/>
+            <label class="form-label">Usuario <span class="req">*</span></label>
+            <input class="form-input" v-model="form.usuario" placeholder="Ej: mgarcia" style="font-family:var(--font-mono);text-transform:uppercase" required/>
             <div class="form-hint">Será tu identificador para iniciar sesión</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Tipo de personal</label>
+            <label class="form-label">Tipo de personal <span class="req">*</span></label>
             <div class="role-cards">
               <div :class="['role-card',{active:form.rol==='admin'}]" @click="form.rol='admin'">
                 <div class="role-card-head">
@@ -1707,27 +1711,22 @@ const RegisterPage = {
           </div>
           <div class="form-group"><div class="form-row">
             <div>
-              <label class="form-label">Contraseña</label>
+              <label class="form-label">Contraseña <span class="req">*</span></label>
               <div class="input-affix right">
-                <input class="form-input" :class="{err:showLenHint}" :type="showPass ? 'text' : 'password'" v-model="form.password" placeholder="••••••••"/>
+                <input class="form-input" :class="{err:showLenHint}" :type="showPass ? 'text' : 'password'" v-model="form.password" placeholder="••••••••" required/>
                 <div class="toggle-eye" @click="showPass=!showPass" v-html="$icon(showPass ? 'eyeOff' : 'eye')"></div>
               </div>
               <div class="form-hint" v-if="showLenHint">Mínimo 8 caracteres</div>
             </div>
             <div>
-              <label class="form-label">Confirmar</label>
+              <label class="form-label">Confirmar <span class="req">*</span></label>
               <div class="input-affix right">
-                <input class="form-input" :class="{err:showMismatch}" :type="showConfirm ? 'text' : 'password'" v-model="form.confirm" placeholder="••••••••"/>
+                <input class="form-input" :class="{err:showMismatch}" :type="showConfirm ? 'text' : 'password'" v-model="form.confirm" placeholder="••••••••" required/>
                 <div class="toggle-eye" @click="showConfirm=!showConfirm" v-html="$icon(showConfirm ? 'eyeOff' : 'eye')"></div>
               </div>
               <div class="form-error" v-if="showMismatch">Las contraseñas no coinciden</div>
             </div>
           </div></div>
-          <div class="form-group">
-            <label class="form-checkbox"><input type="checkbox" v-model="form.terms"/>
-              <span>Acepto los <a href="#" @click.prevent class="form-link">Términos</a> y la <a href="#" @click.prevent class="form-link">Privacidad</a> del sistema</span>
-            </label>
-          </div>
           <button type="submit" class="btn btn-primary btn-lg btn-block" :disabled="!isValid || loading">
             <span v-if="loading" class="btn-loading"><span class="spinner"></span> Enviando solicitud…</span>
             <span v-else>Enviar solicitud de acceso</span>
@@ -3363,15 +3362,18 @@ const UsuariosView = {
     const counts = computed(() => {
       const pendientes = users.value.filter(u => u.estado === 'pendiente').length;
       const activos = users.value.filter(u => u.estado === 'activo').length;
+      const inactivos = users.value.filter(u => u.estado === 'inactivo').length;
       return {
         pendientes,
         activos,
+        inactivos,
         todos: pendientes + activos,
       };
     });
     const filtered = computed(() => {
       if (tab.value === 'activos') return users.value.filter(u => u.estado === 'activo');
       if (tab.value === 'pendientes') return users.value.filter(u => u.estado === 'pendiente');
+      if (tab.value === 'inactivos') return users.value.filter(u => u.estado === 'inactivo');
       // "todos" muestra solo pendientes y activos (coincide con el conteo)
       return users.value.filter(u => u.estado === 'activo' || u.estado === 'pendiente');
     });
@@ -3399,6 +3401,21 @@ const UsuariosView = {
       try {
         await apiFetch('/api/usuarios/' + id, { method:'PATCH', body: JSON.stringify({ accion:'desactivar' }) });
         toast.info('Usuario desactivado');
+        await loadUsers();
+      } catch(e) { toast.error(e.message); }
+    };
+    const reactivar = async (id) => {
+      try {
+        await apiFetch('/api/usuarios/' + id, { method:'PATCH', body: JSON.stringify({ accion:'reactivar' }) });
+        toast.success('Usuario reactivado');
+        await loadUsers();
+      } catch(e) { toast.error(e.message); }
+    };
+    const eliminar = async (u) => {
+      if(!confirm('¿Eliminar definitivamente a ' + u.nombre + '? Esta acción no se puede deshacer.')) return;
+      try {
+        await apiFetch('/api/usuarios/' + u.id, { method:'PATCH', body: JSON.stringify({ accion:'eliminar' }) });
+        toast.success('Usuario eliminado');
         await loadUsers();
       } catch(e) { toast.error(e.message); }
     };
@@ -3431,7 +3448,7 @@ const UsuariosView = {
       } catch(e) { toast.error(e.message); } finally { resetSaving.value = false; }
     };
 
-    return { loading, users, tab, counts, filtered, rolBadge, rolLabel, estadoBadge, estadoLabel, aprobar, rechazar, desactivar, formatDate, refresh, selectTab, loadError,
+    return { loading, users, tab, counts, filtered, rolBadge, rolLabel, estadoBadge, estadoLabel, aprobar, rechazar, desactivar, reactivar, eliminar, formatDate, refresh, selectTab, loadError,
       resetModalOpen, resetTarget, resetForm, resetSaving, openReset, closeReset, submitReset };
   },
   template:`
@@ -3450,6 +3467,7 @@ const UsuariosView = {
       <div :class="['tab',{active:tab==='pendientes'}]" @click="selectTab('pendientes')">Pendientes ({{counts.pendientes}})</div>
       <div :class="['tab',{active:tab==='activos'}]" @click="selectTab('activos')">Activos ({{counts.activos}})</div>
       <div :class="['tab',{active:tab==='todos'}]" @click="selectTab('todos')">Todos ({{counts.todos}})</div>
+      <div :class="['tab',{active:tab==='inactivos'}]" @click="selectTab('inactivos')">Inactivos ({{counts.inactivos}})</div>
     </div>
 
     <template v-if="loading">
@@ -3499,6 +3517,8 @@ const UsuariosView = {
                     <button v-if="u.estado==='pendiente'" class="btn btn-danger btn-sm" @click="rechazar(u.id)"><span v-html="$icon('x')"></span>Rechazar</button>
                     <button v-if="u.estado==='activo'" class="btn btn-outline btn-sm" @click="openReset(u)">Restablecer contraseña</button>
                     <button v-if="u.estado==='activo'" class="btn btn-outline btn-sm" @click="desactivar(u.id)">Desactivar</button>
+                    <button v-if="u.estado==='inactivo'" class="btn btn-outline btn-sm" @click="reactivar(u.id)">Reactivar</button>
+                    <button v-if="u.estado==='inactivo'" class="btn btn-danger btn-sm" @click="eliminar(u)">Eliminar</button>
                   </div>
                 </td>
               </tr>

@@ -1124,11 +1124,14 @@ const auth = reactive({
     localStorage.setItem('inv-oti-token', data.token);
     return data.user;
   },
-  async logout() {
-    try { await apiFetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
+  logout() {
+    const token = localStorage.getItem('inv-oti-token');
     this.user = null;
     localStorage.removeItem('invtec_user');
     localStorage.removeItem('inv-oti-token');
+    if (token) {
+      fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + token } }).catch(()=>{});
+    }
   }
 });
 

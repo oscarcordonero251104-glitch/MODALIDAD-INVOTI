@@ -5,7 +5,7 @@ import { requireAdmin, hashPassword } from '@/lib/auth'
 // Listar TODOS los usuarios (incluye pendientes) — solo admin
 export async function GET(request: Request) {
   try {
-    requireAdmin(request)
+    await requireAdmin(request)
     const users = await db.user.findMany({
       select: {
         id: true,
@@ -32,7 +32,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAdmin(request)
+    await requireAdmin(request)
     const { id } = await params
     const body = await request.json()
     const { accion, nuevaPassword } = body // "aprobar" | "rechazar" | "desactivar" | "reactivar" | "eliminar" | "resetPassword"

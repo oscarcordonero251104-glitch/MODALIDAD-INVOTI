@@ -1124,7 +1124,8 @@ const auth = reactive({
     localStorage.setItem('inv-oti-token', data.token);
     return data.user;
   },
-  logout() {
+  async logout() {
+    try { await apiFetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
     this.user = null;
     localStorage.removeItem('invtec_user');
     localStorage.removeItem('inv-oti-token');

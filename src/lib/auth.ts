@@ -29,9 +29,27 @@ export function generateToken(user: AuthUser): string {
   )
 }
 
-export function verifyToken(token: string): AuthUser | null {
+export async function createSession(userId: string, token: string): Promise<void> {
+  await db.session.create({
+    data: {
+      token,
+      userId,
+      expiresAt: new Date(Date.now() + SESSION_DURATION * 1000),
+    },
+  })
+}
+
+export async function deleteSession(token: string): Promise<void> {
+  await db.session.deleteMany({ where: { token } })
+}
+
+export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any
+    const session = await db.session.findUnique({ where: { token } })
+    if (!session || session.expiresAt < new Date()) {
+      return null
+    }
     return {
       id: decoded.id,
       usuario: decoded.usuario,
@@ -52,14 +70,14 @@ export function getTokenFromRequest(request: Request): string | null {
   return null
 }
 
-export function getAuthUser(request: Request): AuthUser | null {
+export async function getAuthUser(request: Request): Promise<AuthUser | null> {
   const token = getTokenFromRequest(request)
   if (!token) return null
   return verifyToken(token)
 }
 
-export function requireAuth(request: Request): AuthUser {
-  const user = getAuthUser(request)
+export async function requireAuth(request: Request): Promise<AuthUser> {
+  const user = await getAuthUser(request)
   if (!user) {
     throw new Response(JSON.stringify({ error: 'No autorizado' }), {
       status: 401,
@@ -69,8 +87,8 @@ export function requireAuth(request: Request): AuthUser {
   return user
 }
 
-export function requireAdmin(request: Request): AuthUser {
-  const user = requireAuth(request)
+export async function requireAdmin(request: Request): Promise<AuthUser> {
+  const user = await requireAuth(request)
   if (user.rol !== 'admin') {
     throw new Response(JSON.stringify({ error: 'Acceso denegado — se requiere rol administrativo' }), {
       status: 403,

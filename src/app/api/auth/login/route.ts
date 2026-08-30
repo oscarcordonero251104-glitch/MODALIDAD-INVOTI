@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyPassword, generateToken } from '@/lib/auth'
+import { verifyPassword, generateToken, createSession } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +46,8 @@ export async function POST(request: Request) {
       rol: user.rol,
       estado: user.estado,
     })
+
+    await createSession(user.id, token)
 
     return NextResponse.json({
       token,

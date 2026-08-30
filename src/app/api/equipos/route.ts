@@ -4,7 +4,7 @@ import { requireAuth, requireAdmin } from '@/lib/auth'
 
 export async function GET(request: Request) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const equipos = await db.equipo.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    requireAdmin(request)
+    await requireAdmin(request)
     const body = await request.json()
     const { tipo, marca, modelo, sn, codigoInterno, estado, ubicacion, responsable, proveedor, factura, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto } = body
 

@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const { id } = await params
     const body = await request.json()
     const { tipo, titulo, fecha, descripcion, responsable } = body

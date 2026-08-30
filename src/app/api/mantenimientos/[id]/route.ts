@@ -7,7 +7,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const { id } = await params
     const body = await request.json()
     const { estado, fechaEjecucion, costo, descripcion } = body
@@ -50,7 +50,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const { id } = await params
     const existing = await db.mantenimiento.findUnique({ where: { id } })
     if (!existing) {

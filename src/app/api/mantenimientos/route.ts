@@ -4,7 +4,7 @@ import { requireAuth, requireAdmin } from '@/lib/auth'
 
 export async function GET(request: Request) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const mantenimientos = await db.mantenimiento.findMany({
       include: { equipo: true },
       orderBy: { fechaProgramada: 'desc' },
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    requireAdmin(request)
+    await requireAdmin(request)
     const body = await request.json()
     const { equipoId, tipo, descripcion, fechaProgramada, fechaEjecucion, tecnico, estado, costo } = body
 

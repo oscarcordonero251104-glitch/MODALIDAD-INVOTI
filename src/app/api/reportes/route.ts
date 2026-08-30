@@ -25,7 +25,7 @@ const money = (n: number) => 'C$' + (n || 0).toLocaleString('es-AR')
 
 export async function GET(request: Request) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const { searchParams } = new URL(request.url)
     const tipo = searchParams.get('tipo') || 'inventario'
     const formato = (searchParams.get('formato') || 'excel').toLowerCase()

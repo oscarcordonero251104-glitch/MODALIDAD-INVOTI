@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const { id } = await params
     const equipo = await db.equipo.findUnique({
       where: { id },
@@ -32,7 +32,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const { id } = await params
     const body = await request.json()
     const { tipo, marca, modelo, sn, codigoInterno, estado, ubicacion, responsable, proveedor, factura, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto } = body
@@ -88,7 +88,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAuth(request)
+    await requireAuth(request)
     const { id } = await params
     const existing = await db.equipo.findUnique({ where: { id } })
     if (!existing) {

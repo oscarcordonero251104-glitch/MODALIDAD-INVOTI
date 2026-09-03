@@ -2971,7 +2971,7 @@ const EquipoFormView = {
         <div class="panel-head"><div class="panel-title">Especificaciones y extras</div></div>
         <div class="form-group">
           <label class="form-label">Especificaciones técnicas <span class="req">*</span></label>
-          <textarea class="form-textarea" :class="{err:errors.especificaciones}" v-model="form.especificaciones" placeholder='Podés escribir texto libre (ej: Intel i5, 8GB RAM, 256GB SSD) o formato JSON: {"cpu":"","ram":""}'></textarea>
+          <textarea class="form-textarea" :class="{err:errors.especificaciones}" v-model="form.especificaciones" style="min-height:220px" placeholder='Podés escribir texto libre (ej: Intel i5, 8GB RAM, 256GB SSD) o formato JSON: {"cpu":"","ram":""}'></textarea>
           <div class="form-error" v-if="errors.especificaciones">{{errors.especificaciones}}</div>
           <div class="form-hint" v-else>Texto libre o JSON — lo que escribas se guarda igual.</div>
         </div>

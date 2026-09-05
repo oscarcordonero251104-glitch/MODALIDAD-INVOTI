@@ -2330,8 +2330,10 @@ const EquiposListView = {
                 <td style="text-align:right" @click.stop>
                   <div class="row-actions" style="justify-content:flex-end">
                     <div class="ra" @click="goDetail(e.id)" title="Ver detalle" v-html="$icon('eye')"></div>
-                    <div class="ra" @click="editEq(e.id,$event)" title="Editar" v-html="$icon('edit')"></div>
-                    <div class="ra danger" @click="delEq(e.id,$event)" title="Eliminar" v-html="$icon('trash')"></div>
+                    <template v-if="auth.user && auth.user.rol==='admin'">
+                      <div class="ra" @click="editEq(e.id,$event)" title="Editar" v-html="$icon('edit')"></div>
+                      <div class="ra danger" @click="delEq(e.id,$event)" title="Eliminar" v-html="$icon('trash')"></div>
+                    </template>
                   </div>
                 </td>
               </tr>
@@ -2531,7 +2533,7 @@ const EquipoDetailView = {
           <div class="detail-sub"><span class="sn-tag">{{eq.sn}}</span> · {{eq.codigoInterno}}</div>
         </div>
         <div class="detail-actions">
-          <router-link :to="'/equipos/'+eq.id+'/editar'" class="btn btn-outline"><span class="ic" v-html="$icon('edit')"></span>Editar</router-link>
+          <router-link v-if="auth.user && auth.user.rol==='admin'" :to="'/equipos/'+eq.id+'/editar'" class="btn btn-outline"><span class="ic" v-html="$icon('edit')"></span>Editar</router-link>
           <router-link v-if="auth.user && auth.user.rol==='admin'" :to="'/mantenimientos?equipoId='+eq.id" class="btn btn-outline"><span class="ic" v-html="$icon('wrench')"></span>Enviar a mantenimiento</router-link>
           <button class="btn btn-primary" @click="openMovModal"><span class="ic" v-html="$icon('move')"></span>Registrar movimiento</button>
         </div>
@@ -3906,7 +3908,7 @@ const routes = [
       { path:'equipos', component:EquiposListView, meta:{requiresAuth:true,bc:'Equipos'} },
       { path:'equipos/nuevo', component:EquipoFormView, meta:{requiresAuth:true,requiresAdmin:true,bc:'Nuevo equipo'} },
       { path:'equipos/:id', component:EquipoDetailView, meta:{requiresAuth:true,bc:'Detalle'} },
-      { path:'equipos/:id/editar', component:EquipoFormView, meta:{requiresAuth:true,bc:'Editar'} },
+      { path:'equipos/:id/editar', component:EquipoFormView, meta:{requiresAuth:true,requiresAdmin:true,bc:'Editar'} },
       { path:'mantenimientos', component:MantenimientosView, meta:{requiresAuth:true,bc:'Mantenimientos'} },
       { path:'reportes', component:ReportesView, meta:{requiresAuth:true,bc:'Reportes'} },
       { path:'admin/usuarios', component:UsuariosView, meta:{requiresAuth:true,requiresAdmin:true,bc:'Usuarios'} },

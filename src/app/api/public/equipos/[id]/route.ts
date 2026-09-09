@@ -17,6 +17,7 @@ export async function GET(
         modelo: true,
         sn: true,
         codigoInterno: true,
+        descripcion: true,
         estado: true,
         ubicacion: true,
         responsable: true,

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   try {
     await requireAdmin(request)
     const body = await request.json()
-    const { tipo, marca, modelo, sn, codigoInterno, estado, ubicacion, responsable, proveedor, factura, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto } = body
+    const { tipo, marca, modelo, sn, codigoInterno, descripcion, estado, ubicacion, responsable, proveedor, factura, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto } = body
 
     if (!tipo || !marca || !modelo || !sn) {
       return NextResponse.json({ error: 'Tipo, marca, modelo y número de serie son obligatorios' }, { status: 400 })
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       data: {
         tipo, marca, modelo, sn,
         codigoInterno: codigoInterno || null,
+        descripcion: descripcion || null,
         estado: estado || 'activo',
         ubicacion: ubicacion || null,
         responsable: responsable || null,

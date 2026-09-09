@@ -2704,30 +2704,36 @@ const EquipoFormView = {
     const existing = computed(()=> isEdit.value ? eqById(route.params.id) : null);
 
     const form = reactive({
-      tipo:'',marca:'',modelo:'',sn:'',codigoInterno:'',estado:'activo',
+      tipo:'',marca:'',modelo:'',sn:'',codigoInterno:'',descripcion:'',estado:'activo',
       ubicacion:'',responsable:'',proveedor:'',factura:'',
       costo:'',fechaAdquisicion:'',fechaGarantia:'',vidaUtil:5,
-      especificaciones:'',notas:'',foto:''
+      notas:'',foto:''
     });
     watch(existing, (val) => {
       if(!val) return;
-      const espKeys = val.especificaciones ? Object.keys(val.especificaciones) : [];
-      const espText = (espKeys.length===1 && espKeys[0]==='Especificaciones')
-        ? val.especificaciones.Especificaciones
-        : (espKeys.length ? JSON.stringify(val.especificaciones,null,2) : '');
       Object.assign(form, {
         tipo:val.tipo, marca:val.marca, modelo:val.modelo,
-        sn:val.sn, codigoInterno:val.codigoInterno, estado:val.estado,
+        sn:val.sn, codigoInterno:val.codigoInterno, descripcion:val.descripcion||'', estado:val.estado,
         ubicacion:val.ubicacion,
         responsable:val.responsable, proveedor:val.proveedor, factura:val.factura,
         costo:val.costo, fechaAdquisicion:val.fechaAdquisicion, fechaGarantia:val.fechaGarantia,
-        vidaUtil:val.vidaUtil, especificaciones:espText, notas:val.notas||'',
+        vidaUtil:val.vidaUtil, notas:val.notas||'',
         foto:val.foto||''
       });
     }, {immediate:true});
 
     const tipoOptions = ['Laptop','CPU','Monitor','Impresora','Servidor','Switch','Router','UPS'];
+    const clasificacionOptions = computed(()=>{
+      const dbTipos = DB.equipos.map(e=>e.tipo).filter(Boolean);
+      return [...new Set([...tipoOptions, ...dbTipos])].sort();
+    });
     const estadoOptions = [{v:'activo',l:'Activo'},{v:'almacen',l:'En Almacén'},{v:'reparacion',l:'En Reparación'},{v:'baja',l:'Baja'}];
+    // Vida util segun Ley 822 (Ley de Concertacion Tributaria), Reglamento Decreto 01-2013, Art. 34:
+    // equipos de computo (CPU, monitor, impresora, laptop) = 2 anios; equipos de comunicacion y "los demas" = 5 anios.
+    const vidaUtilPorTipo = { Laptop:2, CPU:2, Monitor:2, Impresora:2, Servidor:5, Switch:5, Router:5, UPS:5 };
+    watch(() => form.tipo, (t) => {
+      if(!isEdit.value) form.vidaUtil = vidaUtilPorTipo[t] ?? 5;
+    });
     const addUbicacion = () => {
       const nombre = prompt('Nombre de la nueva ubicación:');
       if (nombre && nombre.trim()) {
@@ -2759,7 +2765,7 @@ const EquipoFormView = {
       if(!form.fechaAdquisicion) e.fechaAdquisicion='Requerido';
       if(!form.fechaGarantia) e.fechaGarantia='Requerido';
       else if(form.fechaAdquisicion && form.fechaGarantia<form.fechaAdquisicion) e.fechaGarantia='Debe ser posterior a la adquisición';
-      if(!(form.especificaciones||'').trim()) e.especificaciones='Requerido';
+      if(!(form.descripcion||'').trim()) e.descripcion='Requerido';
       return e;
     });
     const isValid = computed(()=> Object.keys(errors.value).length===0);
@@ -2780,24 +2786,15 @@ const EquipoFormView = {
 
     const saving = ref(false);
     const buildData = () => {
-      let espec = {};
-      const rawEspec = (form.especificaciones||'').trim();
-      if(rawEspec){
-        try {
-          const parsed = JSON.parse(rawEspec);
-          espec = (parsed && typeof parsed==='object' && !Array.isArray(parsed)) ? parsed : {Especificaciones: rawEspec};
-        } catch(e){
-          espec = {Especificaciones: rawEspec};
-        }
-      }
       return {
         tipo:form.tipo, marca:form.marca, modelo:form.modelo, sn:form.sn,
         codigoInterno:form.codigoInterno || nextCodigoFor(form.tipo),
+        descripcion:form.descripcion||'',
         estado:form.estado,
         ubicacion:form.ubicacion||'',
         responsable:form.responsable||'—', proveedor:form.proveedor||'', factura:form.factura||'',
         costo:Number(form.costo)||0, fechaAdquisicion:form.fechaAdquisicion||'', fechaGarantia:form.fechaGarantia||'',
-        vidaUtil:Number(form.vidaUtil)||5, especificaciones:espec, notas:form.notas||'',
+        vidaUtil:Number(form.vidaUtil)||5, notas:form.notas||'',
         foto:form.foto||''
       };
     };
@@ -2844,7 +2841,7 @@ const EquipoFormView = {
     const onDrop = (e) => { isDragging.value=false; readImageFile(e.dataTransfer.files && e.dataTransfer.files[0]); };
     const removePhoto = (e) => { e.stopPropagation(); form.foto=''; photoError.value=''; };
 
-    return { DB, form, isEdit, tipoOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, save, saving,
+    return { DB, form, isEdit, tipoOptions, clasificacionOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, save, saving,
       fileInput, photoError, isDragging, triggerFileInput, onFileSelect, onDrop, removePhoto,
       goBack:()=>router.back() };
   },
@@ -2865,43 +2862,47 @@ const EquipoFormView = {
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Descripción <span class="req">*</span></label>
-            <select class="form-select" :class="{err:errors.tipo}" v-model="form.tipo">
-              <option value="">Seleccionar…</option>
-              <option v-for="t in tipoOptions" :key="t" :value="t">{{t}}</option>
-            </select>
-            <div class="form-error" v-if="errors.tipo">{{errors.tipo}}</div>
+            <input class="form-input" :class="{err:errors.descripcion}" v-model="form.descripcion" placeholder="Describí el equipo con tus palabras…"/>
+            <div class="form-error" v-if="errors.descripcion">{{errors.descripcion}}</div>
           </div>
+          <div class="form-group">
+            <label class="form-label">Clasificación <span class="req">*</span></label>
+            <input class="form-input" :class="{err:errors.tipo}" v-model="form.tipo" list="clasificacion-list" placeholder="Ej: Laptop, CPU, Monitor…"/>
+            <datalist id="clasificacion-list"><option v-for="t in clasificacionOptions" :key="t" :value="t"/></datalist>
+            <div class="form-error" v-if="errors.tipo">{{errors.tipo}}</div>
+            <div class="form-hint" v-else>Escribí una clasificación existente o creá una nueva</div>
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Estado <span class="req">*</span></label>
             <select class="form-select" v-model="form.estado">
               <option v-for="e in estadoOptions" :key="e.v" :value="e.v">{{e.l}}</option>
             </select>
           </div>
-        </div>
-        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Marca <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.marca}" v-model="form.marca" placeholder="Dell, HP, Lenovo…"/>
             <div class="form-error" v-if="errors.marca">{{errors.marca}}</div>
           </div>
+        </div>
+        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Modelo <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.modelo}" v-model="form.modelo" placeholder="Latitude 5440"/>
             <div class="form-error" v-if="errors.modelo">{{errors.modelo}}</div>
           </div>
-        </div>
-        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Número de serie <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.sn}" v-model="form.sn" @input="snToUpper" placeholder="Ej: 8H3XCP2" style="font-family:var(--font-mono);text-transform:uppercase"/>
             <div class="form-error" v-if="errors.sn">{{errors.sn}}</div>
             <div class="form-hint" v-else>Número de serie real del fabricante (etiqueta del equipo)</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Código interno</label>
-            <input class="form-input" :value="form.codigoInterno || 'Se genera al completar el formulario'" readonly style="font-family:var(--font-mono);opacity:0.75;cursor:not-allowed"/>
-            <div class="form-hint">Se genera automáticamente al llenar todos los campos obligatorios y nunca se repite</div>
-          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Código interno</label>
+          <input class="form-input" :value="form.codigoInterno || 'Se genera al completar el formulario'" readonly style="font-family:var(--font-mono);opacity:0.75;cursor:not-allowed"/>
+          <div class="form-hint">Se genera automáticamente al llenar todos los campos obligatorios y nunca se repite</div>
         </div>
       </div>
 
@@ -2953,6 +2954,7 @@ const EquipoFormView = {
             <label class="form-label">Vida útil (años) <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.vidaUtil}" type="number" min="1" v-model="form.vidaUtil"/>
             <div class="form-error" v-if="errors.vidaUtil">{{errors.vidaUtil}}</div>
+            <div class="form-hint" v-else>Sugerida según la clasificación (Ley 822, Decreto 01-2013) · se puede ajustar</div>
           </div>
         </div>
         <div class="form-row">
@@ -2970,13 +2972,7 @@ const EquipoFormView = {
       </div>
 
       <div class="panel" style="margin-bottom:16px">
-        <div class="panel-head"><div class="panel-title">Especificaciones y extras</div></div>
-        <div class="form-group">
-          <label class="form-label">Especificaciones técnicas <span class="req">*</span></label>
-          <textarea class="form-textarea" :class="{err:errors.especificaciones}" v-model="form.especificaciones" style="min-height:220px" placeholder='Podés escribir texto libre (ej: Intel i5, 8GB RAM, 256GB SSD) o formato JSON: {"cpu":"","ram":""}'></textarea>
-          <div class="form-error" v-if="errors.especificaciones">{{errors.especificaciones}}</div>
-          <div class="form-hint" v-else>Texto libre o JSON — lo que escribas se guarda igual.</div>
-        </div>
+        <div class="panel-head"><div class="panel-title">Extras</div></div>
         <div class="form-group">
           <label class="form-label">Foto del equipo <span class="opt">(opcional)</span></label>
           <input ref="fileInput" type="file" accept="image/png,image/jpeg" style="display:none" @change="onFileSelect"/>
@@ -3742,15 +3738,23 @@ const QRScanner = {
             <div v-if="foundEquipo.foto" style="margin-top:14px;border:1px solid var(--gray-700);border-radius:8px;overflow:hidden">
               <img :src="foundEquipo.foto" alt="Foto del equipo" style="width:100%;max-height:200px;object-fit:contain;display:block;background:var(--bg-void)"/>
             </div>
-            <div class="data-grid" style="margin-top:16px">
-              <div class="data-field"><span class="dl">Tipo</span><span class="dv">{{foundEquipo.tipo}}</span></div>
-              <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{foundEquipo.ubicacion || '—'}}</span></div>
-              <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{foundEquipo.responsable}}</span></div>
-              <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{foundEquipo.proveedor || '—'}}</span></div>
-              <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(foundEquipo.costo)}}</span></div>
-              <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{foundEquipo.fechaAdquisicion || '—'}}</span></div>
-              <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{foundEquipo.fechaGarantia || '—'}}</span></div>
-              <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{foundEquipo.vidaUtil}} años</span></div>
+            <div style="margin-top:16px">
+              <div class="panel-sub" style="margin-bottom:10px">UBICACIÓN Y RESPONSABLE</div>
+              <div class="data-grid">
+                <div class="data-field"><span class="dl">Tipo</span><span class="dv">{{foundEquipo.tipo}}</span></div>
+                <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{foundEquipo.ubicacion || '—'}}</span></div>
+                <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{foundEquipo.responsable}}</span></div>
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <div class="panel-sub" style="margin-bottom:10px">ADQUISICIÓN Y GARANTÍA</div>
+              <div class="data-grid">
+                <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{foundEquipo.proveedor || '—'}}</span></div>
+                <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(foundEquipo.costo)}}</span></div>
+                <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{foundEquipo.fechaAdquisicion || '—'}}</span></div>
+                <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{foundEquipo.fechaGarantia || '—'}}</span></div>
+                <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{foundEquipo.vidaUtil}} años</span></div>
+              </div>
             </div>
             <div v-if="foundEquipo.especificaciones && Object.keys(foundEquipo.especificaciones).length" style="margin-top:16px">
               <div class="panel-sub" style="margin-bottom:10px">ESPECIFICACIONES TÉCNICAS</div>
@@ -3867,15 +3871,23 @@ const QRPublicView = {
           <div v-if="eq.foto" style="margin-top:16px;border:1px solid var(--gray-700);border-radius:8px;overflow:hidden">
             <img :src="eq.foto" alt="Foto del equipo" style="width:100%;max-height:260px;object-fit:contain;display:block;background:var(--bg-void)"/>
           </div>
-          <div class="data-grid" style="margin-top:20px">
-            <div class="data-field"><span class="dl">Tipo</span><span class="dv">{{eq.tipo}}</span></div>
-            <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{eq.ubicacion || '—'}}</span></div>
-            <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{eq.responsable || '—'}}</span></div>
-            <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor || '—'}}</span></div>
-            <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
-            <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion || '—'}}</span></div>
-            <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia || '—'}}</span></div>
-            <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>
+          <div style="margin-top:24px">
+            <div class="panel-sub" style="margin-bottom:10px">UBICACIÓN Y RESPONSABLE</div>
+            <div class="data-grid">
+              <div class="data-field"><span class="dl">Tipo</span><span class="dv">{{eq.tipo}}</span></div>
+              <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{eq.ubicacion || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{eq.responsable || '—'}}</span></div>
+            </div>
+          </div>
+          <div style="margin-top:24px">
+            <div class="panel-sub" style="margin-bottom:10px">ADQUISICIÓN Y GARANTÍA</div>
+            <div class="data-grid">
+              <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
+              <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia || '—'}}</span></div>
+              <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>
+            </div>
           </div>
           <div v-if="Object.keys(eq.especificaciones).length" style="margin-top:24px">
             <div class="panel-sub" style="margin-bottom:10px">ESPECIFICACIONES TÉCNICAS</div>
@@ -3883,7 +3895,7 @@ const QRPublicView = {
               <div v-for="(v,k) in eq.especificaciones" :key="k"><span class="sk">{{k}}:</span> <span class="sv">{{v}}</span></div>
             </div>
           </div>
-          <div v-if="eq.notas" style="margin-top:20px">
+          <div v-if="eq.notas" style="margin-top:24px">
             <div class="panel-sub" style="margin-bottom:8px">NOTAS</div>
             <div style="font-size:13.5px;color:var(--gray-300);line-height:1.6">{{eq.notas}}</div>
           </div>

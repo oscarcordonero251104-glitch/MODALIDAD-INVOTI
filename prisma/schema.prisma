@@ -29,6 +29,7 @@ model Equipo {
   modelo            String
   sn                String   @unique
   codigoInterno     String?  @unique
+  descripcion       String?
   estado            String   @default("activo") // activo, reparacion, baja, almacen, prestamo
   ubicacion         String?
   responsable       String?

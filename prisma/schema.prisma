@@ -42,6 +42,7 @@ model Equipo {
   especificaciones  String?  // JSON string
   notas             String?
   foto              String?  // imagen en base64 (data URL)
+  diagnosticoPdf    String?  // PDF de diagnostico (data URL), solo para equipos dados de baja
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

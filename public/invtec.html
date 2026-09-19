@@ -98,6 +98,19 @@ img,svg{display:block}
 .input-affix .ic-left{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--gray-500);pointer-events:none}
 .input-affix .btn-inside{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:6px 10px;font-size:11px;font-family:var(--font-mono)}
 
+/* ---- Buscador de equipo (mantenimientos) ---- */
+.equipo-selected-wrap{position:relative}
+.equipo-selected-wrap .form-input{padding-right:90px;color:var(--gray-100)}
+.equipo-selected-change{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:6px 10px;font-size:11px}
+.equipo-search-dropdown{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--bg-elevated);border:1px solid var(--gray-700);border-radius:8px;max-height:260px;overflow-y:auto;z-index:20;box-shadow:0 12px 24px rgba(0,0,0,0.35)}
+.equipo-search-empty{padding:14px;font-size:12.5px;color:var(--gray-500);text-align:center}
+.equipo-search-item{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--gray-800)}
+.equipo-search-item:last-child{border-bottom:none}
+.equipo-search-item:hover{background:var(--bg-hover)}
+.equipo-search-item-body{min-width:0}
+.equipo-search-item-title{font-size:13px;color:var(--gray-100);font-weight:500}
+.equipo-search-item-sub{font-size:11.5px;color:var(--gray-500);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* ---- Splash ---- */
 .splash{position:fixed;inset:0;z-index:9000;background:radial-gradient(ellipse at center,var(--bg-primary) 0%,var(--bg-void) 70%);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .splash .scanline{position:absolute;left:0;right:0;height:2px;top:-3px;background:linear-gradient(90deg,transparent,var(--blue-500) 50%,transparent);opacity:0.12;animation:scanline 4.2s linear infinite}
@@ -609,6 +622,7 @@ table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:90
 .mt-card{background:var(--bg-surface);border:1px solid var(--gray-700);border-left:3px solid var(--gray-700);border-radius:8px;padding:18px;margin-bottom:12px;transition:all 0.3s var(--ease-expo);opacity:0;animation:fadeInUp 0.4s var(--ease-expo) forwards}
 .mt-card:nth-child(1){animation-delay:0.05s}.mt-card:nth-child(2){animation-delay:0.12s}.mt-card:nth-child(3){animation-delay:0.19s}.mt-card:nth-child(4){animation-delay:0.26s}.mt-card:nth-child(5){animation-delay:0.33s}
 .mt-card:hover{border-color:var(--gray-600);box-shadow:0 6px 20px rgba(0,0,0,0.25)}
+.mt-card.st-Solicitado{border-left-color:var(--gray-500)}
 .mt-card.st-Pendiente{border-left-color:var(--status-repair)}
 .mt-card.st-En{border-left-color:var(--blue-400)}
 .mt-card.st-Completado{border-left-color:var(--status-active)}
@@ -1195,6 +1209,19 @@ const estadoMeta = (e) => ({
 }[e] || {label:e,cls:'gray'});
 const eqById = (id) => DB.equipos.find(e => String(e.id) === String(id));
 const formatMoney = (n) => 'C$' + Number(n||0).toLocaleString('es-AR');
+// Depreciacion en linea recta (Ley 822, Decreto 01-2013) a partir de costo, fecha de adquisicion y vida util.
+const valorActualNeto = (eq) => {
+  if(!eq || !eq.fechaAdquisicion || !eq.vidaUtil || eq.costo===undefined || eq.costo===null) return null;
+  const inicio = new Date(eq.fechaAdquisicion);
+  if(isNaN(inicio.getTime())) return null;
+  const hoy = new Date();
+  const mesesTranscurridos = Math.max(0, (hoy.getFullYear()-inicio.getFullYear())*12 + (hoy.getMonth()-inicio.getMonth()));
+  const mesesVidaUtil = eq.vidaUtil * 12;
+  const mesesDepreciados = Math.min(mesesTranscurridos, mesesVidaUtil);
+  const pctDepreciado = mesesVidaUtil > 0 ? (mesesDepreciados/mesesVidaUtil*100) : 100;
+  const valor = eq.costo * (1 - (pctDepreciado/100));
+  return { valor, pctDepreciado };
+};
 const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const formatNum = (n) => Number(n||0).toLocaleString('es-AR');
 const ALERTS_DISMISSED_KEY = 'inv-oti-dismissed-alerts';
@@ -2579,7 +2606,7 @@ const EquipoDetailView = {
       }
     };
 
-    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, printLabel, qr, isLocalhost, downloadQR, auth,
+    return { loading, eq, movs, mts, activeTab, movIcon, estadoMeta, formatMoney, valorActualNeto, printLabel, qr, isLocalhost, downloadQR, auth,
       uploadingDiagnostico, diagnosticoInput, triggerDiagnosticoInput, onDiagnosticoSelect,
       tipoMovOptions, movModalOpen, movSaving, movForm, movErrors, movSubmitAttempted, responsableEditable, todayStr, openMovModal, closeMovModal, submitMovimiento,
       goBack:()=>router.push('/equipos') };
@@ -2630,7 +2657,9 @@ const EquipoDetailView = {
           <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{eq.responsable}}</span></div>
           <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor}}</span></div>
           <div class="data-field"><span class="dl">Factura</span><span class="dv mono">{{eq.factura}}</span></div>
+          <div class="data-field"><span class="dl">Número de contrato</span><span class="dv mono">{{eq.numeroContrato || '—'}}</span></div>
           <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
+          <div class="data-field" v-if="valorActualNeto(eq)"><span class="dl">Valor actual (neto de depreciación)</span><span class="dv mono">{{formatMoney(valorActualNeto(eq).valor)}} <span style="color:var(--gray-500);font-size:11px">({{Math.round(valorActualNeto(eq).pctDepreciado)}}% depreciado)</span></span></div>
           <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion}}</span></div>
           <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia}}</span></div>
           <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>
@@ -2649,7 +2678,7 @@ const EquipoDetailView = {
             <span class="ic" v-html="$icon('upload')"></span>
             {{uploadingDiagnostico ? 'Subiendo…' : (eq.diagnosticoPdf ? 'Subir otro PDF de diagnóstico' : 'Subir PDF de diagnóstico')}}
           </button>
-          <div class="form-hint" style="margin-top:8px">Solo archivos PDF, hasta 10MB.</div>
+          <div class="form-hint" style="margin-top:8px">Solo archivos PDF.</div>
         </div>
         <div v-else-if="!eq.diagnosticoPdf" class="form-hint">Todavía no se subió un diagnóstico para este equipo.</div>
         <div v-if="eq.diagnosticoPdf" style="margin-top:12px">
@@ -2779,7 +2808,7 @@ const EquipoFormView = {
 
     const form = reactive({
       tipo:'',marca:'',modelo:'',sn:'',codigoInterno:'',descripcion:'',estado:'activo',
-      ubicacion:'',responsable:'',proveedor:'',factura:'',
+      ubicacion:'',responsable:'',proveedor:'',factura:'',numeroContrato:'',
       costo:'',fechaAdquisicion:'',fechaGarantia:'',vidaUtil:5,
       notas:'',foto:''
     });
@@ -2789,7 +2818,7 @@ const EquipoFormView = {
         tipo:val.tipo, marca:val.marca, modelo:val.modelo,
         sn:val.sn, codigoInterno:val.codigoInterno, descripcion:val.descripcion||'', estado:val.estado,
         ubicacion:val.ubicacion,
-        responsable:val.responsable, proveedor:val.proveedor, factura:val.factura,
+        responsable:val.responsable, proveedor:val.proveedor, factura:val.factura, numeroContrato:val.numeroContrato||'',
         costo:val.costo, fechaAdquisicion:val.fechaAdquisicion, fechaGarantia:val.fechaGarantia,
         vidaUtil:val.vidaUtil, notas:val.notas||'',
         foto:val.foto||''
@@ -2833,6 +2862,7 @@ const EquipoFormView = {
       if(!form.responsable) e.responsable='Requerido';
       if(!form.proveedor) e.proveedor='Requerido';
       if(!form.factura) e.factura='Requerido';
+      if(!form.numeroContrato) e.numeroContrato='Requerido';
       if(form.costo===''||form.costo===null||form.costo===undefined) e.costo='Requerido';
       else if(Number(form.costo)<0) e.costo='Debe ser positivo';
       if(form.vidaUtil===''||form.vidaUtil===null||form.vidaUtil===undefined) e.vidaUtil='Requerido';
@@ -2866,7 +2896,7 @@ const EquipoFormView = {
         descripcion:form.descripcion||'',
         estado:form.estado,
         ubicacion:form.ubicacion||'',
-        responsable:form.responsable||'—', proveedor:form.proveedor||'', factura:form.factura||'',
+        responsable:form.responsable||'—', proveedor:form.proveedor||'', factura:form.factura||'', numeroContrato:form.numeroContrato||'',
         costo:Number(form.costo)||0, fechaAdquisicion:form.fechaAdquisicion||'', fechaGarantia:form.fechaGarantia||'',
         vidaUtil:Number(form.vidaUtil)||5, notas:form.notas||'',
         foto:form.foto||''
@@ -3019,6 +3049,13 @@ const EquipoFormView = {
         </div>
         <div class="form-row">
           <div class="form-group">
+            <label class="form-label">Número de contrato <span class="req">*</span></label>
+            <input class="form-input" :class="{err:errors.numeroContrato}" v-model="form.numeroContrato" placeholder="ENATREL-CC-001-2024" style="font-family:var(--font-mono)"/>
+            <div class="form-error" v-if="errors.numeroContrato">{{errors.numeroContrato}}</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label class="form-label">Costo <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.costo}" type="number" min="0" v-model="form.costo" placeholder="0"/>
             <div class="form-error" v-if="errors.costo">{{errors.costo}}</div>
@@ -3095,19 +3132,22 @@ const MantenimientosView = {
     const retryLoad = () => initMantenimientos();
     const tab = ref('pendientes');
     const counts = computed(()=>({
-      pendientes: DB.mantenimientos.filter(m=>m.estado!=='Completado').length,
+      solicitudes: DB.mantenimientos.filter(m=>m.estado==='Solicitado').length,
+      pendientes: DB.mantenimientos.filter(m=>m.estado!=='Completado' && m.estado!=='Solicitado').length,
       completados: DB.mantenimientos.filter(m=>m.estado==='Completado').length,
       todos: DB.mantenimientos.length,
     }));
     const filtered = computed(()=>{
       if(tab.value==='todos') return DB.mantenimientos;
+      if(tab.value==='solicitudes') return DB.mantenimientos.filter(m=>m.estado==='Solicitado');
       if(tab.value==='completados') return DB.mantenimientos.filter(m=>m.estado==='Completado');
-      return DB.mantenimientos.filter(m=>m.estado!=='Completado');
+      return DB.mantenimientos.filter(m=>m.estado!=='Completado' && m.estado!=='Solicitado');
     });
     const stCls = (s) => 'st-'+s.split(' ')[0];
-    const stBadge = (s) => ({'Pendiente':'repair','En proceso':'blue','Completado':'active','Cancelado':'retired'}[s]||'gray');
+    const stBadge = (s) => ({'Solicitado':'storage','Pendiente':'repair','En proceso':'blue','Completado':'active','Cancelado':'retired'}[s]||'gray');
     const eqName = (m) => m.equipo ? m.equipo.marca+' '+m.equipo.modelo : '—';
     const eqSn = (m) => m.equipo ? m.equipo.sn : '—';
+    const eqUbicacion = (m) => m.equipo ? (m.equipo.ubicacion || '—') : '—';
     const formatEnviado = (d) => d ? new Date(d).toLocaleString('es-AR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
 
     const tipoOptions = ['Preventivo','Correctivo'];
@@ -3127,18 +3167,74 @@ const MantenimientosView = {
       } catch(e) { /* silencioso: el select queda vacío si falla */ }
     };
     onMounted(()=>{ loadTecnicos(); });
-    const form = reactive({equipoId:'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente'});
+    const modalMode = ref('programar'); // 'programar' (admin, completo) | 'solicitar' (tecnico) | 'completar' (admin completa una solicitud)
+    const editingId = ref('');
+    const form = reactive({equipoId:'', tipo:'Preventivo', diagnostico:'', tecnicoDiagnostico:'', descripcion:'', fechaProgramada:todayStr(), fechaEjecucion:'', tecnico:'', estado:'Pendiente'});
     const errors = computed(()=>{
       const e = {};
       if(!form.equipoId) e.equipoId = 'Requerido';
-      if(!form.descripcion.trim()) e.descripcion = 'Requerido';
-      if(!form.fechaProgramada) e.fechaProgramada = 'Requerido';
-      else if(form.fechaProgramada < todayStr()) e.fechaProgramada = 'No puede ser antes de hoy';
-      if(!form.tecnico.trim()) e.tecnico = 'Requerido';
+      if(!form.diagnostico.trim()) e.diagnostico = 'Requerido';
+      if(modalMode.value !== 'solicitar'){
+        if(!form.tecnicoDiagnostico.trim()) e.tecnicoDiagnostico = 'Requerido';
+        if(!form.descripcion.trim()) e.descripcion = 'Requerido';
+        if(!form.fechaProgramada) e.fechaProgramada = 'Requerido';
+        else if(form.fechaProgramada < todayStr()) e.fechaProgramada = 'No puede ser antes de hoy';
+        if(!form.tecnico.trim()) e.tecnico = 'Requerido';
+      }
       return e;
     });
+
+    const equipoSearch = ref('');
+    const equipoSearchOpen = ref(false);
+    const equipoSeleccionado = computed(()=> DB.equipos.find(e=>e.id===form.equipoId) || null);
+    const equipoResultados = computed(()=>{
+      const q = equipoSearch.value.trim().toLowerCase();
+      const lista = !q ? DB.equipos : DB.equipos.filter(e =>
+        (e.codigoInterno||'').toLowerCase().includes(q) ||
+        (e.descripcion||'').toLowerCase().includes(q) ||
+        (e.tipo||'').toLowerCase().includes(q) ||
+        (e.marca||'').toLowerCase().includes(q) ||
+        (e.modelo||'').toLowerCase().includes(q) ||
+        (e.sn||'').toLowerCase().includes(q)
+      );
+      return lista.slice(0,8);
+    });
+    const pickEquipo = (e) => {
+      form.equipoId = e.id;
+      equipoSearch.value = '';
+      equipoSearchOpen.value = false;
+    };
+    const clearEquipoSeleccionado = () => {
+      form.equipoId = '';
+      equipoSearch.value = '';
+      nextTick(()=>{ equipoSearchOpen.value = true; });
+    };
+
     const openModal = (equipoId) => {
-      Object.assign(form, {equipoId: equipoId||'', tipo:'Preventivo', descripcion:'', fechaProgramada:todayStr(), tecnico:'', estado:'Pendiente'});
+      modalMode.value = 'programar';
+      editingId.value = '';
+      Object.assign(form, {equipoId: equipoId||'', tipo:'Preventivo', diagnostico:'', tecnicoDiagnostico:'', descripcion:'', fechaProgramada:todayStr(), tecnico:'', estado:'Pendiente'});
+      equipoSearch.value = '';
+      equipoSearchOpen.value = false;
+      modalOpen.value = true;
+    };
+    const openSolicitarModal = () => {
+      modalMode.value = 'solicitar';
+      editingId.value = '';
+      Object.assign(form, {equipoId:'', tipo:'', diagnostico:'', tecnicoDiagnostico:'', descripcion:'', fechaProgramada:'', tecnico:'', estado:'Solicitado'});
+      equipoSearch.value = '';
+      equipoSearchOpen.value = false;
+      modalOpen.value = true;
+    };
+    const openProgramarSolicitud = (m) => {
+      modalMode.value = 'completar';
+      editingId.value = m.id;
+      Object.assign(form, {
+        equipoId: m.equipoId, tipo:'Preventivo', diagnostico: m.diagnostico||'', tecnicoDiagnostico: m.tecnicoDiagnostico||'',
+        descripcion:'', fechaProgramada: todayStr(), tecnico:'', estado:'Pendiente',
+      });
+      equipoSearch.value = '';
+      equipoSearchOpen.value = false;
       modalOpen.value = true;
     };
     const closeModal = () => { modalOpen.value = false; };
@@ -3199,21 +3295,44 @@ const MantenimientosView = {
       saving.value = true;
       try {
         const token = localStorage.getItem('inv-oti-token');
-        const res = await fetch('/api/mantenimientos', {
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-          body: JSON.stringify({
-            equipoId: form.equipoId, tipo: form.tipo, descripcion: form.descripcion.trim(),
-            fechaProgramada: form.fechaProgramada,
-            tecnico: form.tecnico.trim(), estado: form.estado,
-          }),
-        });
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.error || 'Error al programar el mantenimiento');
-        DB.mantenimientos.unshift(data.mantenimiento);
-        const eqRef = DB.equipos.find(e=>e.id===form.equipoId);
-        if(eqRef){ if(!eqRef.mantenimientos) eqRef.mantenimientos=[]; eqRef.mantenimientos.unshift(data.mantenimiento); }
-        toast.success('Mantenimiento programado');
+        let res, data;
+        if(modalMode.value === 'completar'){
+          res = await fetch('/api/mantenimientos/'+editingId.value, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body: JSON.stringify({
+              tipo: form.tipo, descripcion: form.descripcion.trim(),
+              fechaProgramada: form.fechaProgramada, tecnico: form.tecnico.trim(),
+              estado: 'Pendiente',
+            }),
+          });
+          data = await res.json();
+          if(!res.ok) throw new Error(data.error || 'Error al programar la solicitud');
+          const idx = DB.mantenimientos.findIndex(x=>x.id===editingId.value);
+          if(idx>=0) DB.mantenimientos[idx] = data.mantenimiento;
+          toast.success('Solicitud programada');
+        } else {
+          const body = modalMode.value === 'solicitar'
+            ? { equipoId: form.equipoId, diagnostico: form.diagnostico.trim() }
+            : {
+                equipoId: form.equipoId, tipo: form.tipo,
+                diagnostico: form.diagnostico.trim(), tecnicoDiagnostico: form.tecnicoDiagnostico.trim(),
+                descripcion: form.descripcion.trim(),
+                fechaProgramada: form.fechaProgramada,
+                tecnico: form.tecnico.trim(), estado: form.estado,
+              };
+          res = await fetch('/api/mantenimientos', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body: JSON.stringify(body),
+          });
+          data = await res.json();
+          if(!res.ok) throw new Error(data.error || 'Error al programar el mantenimiento');
+          DB.mantenimientos.unshift(data.mantenimiento);
+          const eqRef = DB.equipos.find(e=>e.id===form.equipoId);
+          if(eqRef){ if(!eqRef.mantenimientos) eqRef.mantenimientos=[]; eqRef.mantenimientos.unshift(data.mantenimiento); }
+          toast.success(modalMode.value === 'solicitar' ? 'Solicitud de mantenimiento enviada' : 'Mantenimiento programado');
+        }
         modalOpen.value = false;
       } catch(e) {
         toast.error(e.message);
@@ -3222,9 +3341,11 @@ const MantenimientosView = {
       }
     };
 
-    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, formatMoney, formatEnviado, DB, retryLoad, auth,
+    return { loading, tab, counts, filtered, stCls, stBadge, eqName, eqSn, eqUbicacion, formatMoney, formatEnviado, DB, retryLoad, auth,
       tipoOptions, estadoOptions, modalOpen, saving, form, errors, todayStr, tecnicosDisponibles, openModal, closeModal, submitForm,
-      cambiarEstado, estadoSaving };
+      cambiarEstado, estadoSaving,
+      equipoSearch, equipoSearchOpen, equipoSeleccionado, equipoResultados, pickEquipo, clearEquipoSeleccionado,
+      modalMode, editingId, openSolicitarModal, openProgramarSolicitud };
   },
   template:`
   <div>
@@ -3233,12 +3354,14 @@ const MantenimientosView = {
         <div class="page-title">Mantenimientos</div>
         <div class="page-subtitle">Gestión de mantenimientos preventivos y correctivos</div>
       </div>
-      <div class="page-actions" v-if="auth.user && auth.user.rol==='admin'">
-        <button class="btn btn-primary" @click="openModal"><span class="ic" v-html="$icon('plus')"></span>Programar mantenimiento</button>
+      <div class="page-actions">
+        <button v-if="auth.user && auth.user.rol==='tecnico'" class="btn btn-outline" @click="openSolicitarModal"><span class="ic" v-html="$icon('alert')"></span>Solicitar mantenimiento</button>
+        <button v-if="auth.user && auth.user.rol==='admin'" class="btn btn-primary" @click="openModal"><span class="ic" v-html="$icon('plus')"></span>Programar mantenimiento</button>
       </div>
     </div>
 
     <div class="tabs">
+      <div :class="['tab',{active:tab==='solicitudes'}]" @click="tab='solicitudes'">Solicitudes ({{counts.solicitudes}})</div>
       <div :class="['tab',{active:tab==='pendientes'}]" @click="tab='pendientes'">Pendientes ({{counts.pendientes}})</div>
       <div :class="['tab',{active:tab==='completados'}]" @click="tab='completados'">Completados ({{counts.completados}})</div>
       <div :class="['tab',{active:tab==='todos'}]" @click="tab='todos'">Todos ({{counts.todos}})</div>
@@ -3265,22 +3388,26 @@ const MantenimientosView = {
         <div v-for="m in filtered" :key="m.id" :class="['mt-card', stCls(m.estado)]">
           <div class="mt-head">
             <router-link :to="'/equipos/'+m.equipoId+'?tab=mt'" style="text-decoration:none;color:inherit">
-              <div class="mt-title">{{m.tipo}} · {{eqName(m)}}</div>
+              <div class="mt-title">{{m.tipo || 'Solicitud de mantenimiento'}} · {{eqName(m)}}</div>
               <div class="mt-eq"><span class="sn-tag">{{eqSn(m)}}</span></div>
             </router-link>
             <span :class="['badge', stBadge(m.estado)]"><span class="bdot"></span>{{m.estado}}</span>
           </div>
-          <div class="mt-desc">{{m.descripcion}}</div>
+          <div v-if="m.diagnostico" class="mt-desc"><strong style="color:var(--gray-300)">Diagnóstico:</strong> {{m.diagnostico}}</div>
+          <div v-if="m.descripcion" class="mt-desc"><strong style="color:var(--gray-300)">Detalle:</strong> {{m.descripcion}}</div>
           <div class="mt-meta">
-            <div class="mr"><span v-html="$icon('calendar')"></span><span class="ml">Programado:</span>{{m.fechaProgramada}}</div>
+            <div class="mr" v-if="m.tecnicoDiagnostico"><span v-html="$icon('user')"></span><span class="ml">Diagnosticó:</span>{{m.tecnicoDiagnostico}}</div>
+            <div class="mr"><span v-html="$icon('pin')"></span><span class="ml">Ubicación:</span>{{m.ubicacion || eqUbicacion(m)}}</div>
+            <div class="mr" v-if="m.fechaProgramada"><span v-html="$icon('calendar')"></span><span class="ml">Programado:</span>{{m.fechaProgramada}}</div>
             <div class="mr" v-if="m.fechaEjecucion"><span v-html="$icon('check')"></span><span class="ml">Ejecutado:</span>{{m.fechaEjecucion}}</div>
-            <div class="mr"><span v-html="$icon('user')"></span><span class="ml">Técnico:</span>{{m.tecnico}}</div>
+            <div class="mr" v-if="m.tecnico"><span v-html="$icon('user')"></span><span class="ml">Técnico:</span>{{m.tecnico}}</div>
             <div class="mr"><span v-html="$icon('clock')"></span><span class="ml">Enviado:</span>{{formatEnviado(m.createdAt)}}</div>
           </div>
-          <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="m.estado==='Pendiente' || m.estado==='En proceso'">
+          <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="m.estado==='Solicitado' || m.estado==='Pendiente' || m.estado==='En proceso'">
+            <button v-if="m.estado==='Solicitado' && auth.user && auth.user.rol==='admin'" class="btn btn-primary btn-sm" @click="openProgramarSolicitud(m)">Programar</button>
             <button v-if="m.estado==='Pendiente'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'En proceso')">Iniciar</button>
-            <button class="btn btn-primary btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Completado')">Completar</button>
-            <button class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Cancelado')">Cancelar</button>
+            <button v-if="m.estado!=='Solicitado'" class="btn btn-primary btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Completado')">Completar</button>
+            <button v-if="m.estado!=='Solicitado'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Cancelado')">Cancelar</button>
           </div>
         </div>
       </div>
@@ -3296,27 +3423,40 @@ const MantenimientosView = {
     <div class="modal-overlay" v-if="modalOpen" @click.self="closeModal">
       <div class="modal-box">
         <div class="modal-head">
-          <h3>Programar mantenimiento</h3>
+          <h3>{{modalMode==='solicitar' ? 'Solicitar mantenimiento' : (modalMode==='completar' ? 'Programar solicitud' : 'Programar mantenimiento')}}</h3>
           <button class="modal-close" @click="closeModal" v-html="$icon('x')"></button>
         </div>
         <form @submit.prevent="submitForm">
           <div class="modal-body">
-            <div class="form-group">
+            <div class="form-group" style="position:relative">
               <label class="form-label">Equipo <span class="req">*</span></label>
-              <select class="form-select" :class="{err:errors.equipoId}" v-model="form.equipoId">
-                <option value="">Seleccionar…</option>
-                <option v-for="e in DB.equipos" :key="e.id" :value="e.id">{{e.marca}} {{e.modelo}} — {{e.sn}}</option>
-              </select>
+              <div v-if="equipoSeleccionado" class="equipo-selected-wrap">
+                <input class="form-input" :value="(equipoSeleccionado.codigoInterno ? equipoSeleccionado.codigoInterno+' · ' : '') + equipoSeleccionado.marca+' '+equipoSeleccionado.modelo+' ('+equipoSeleccionado.sn+')'" readonly/>
+                <button v-if="modalMode!=='completar'" type="button" class="btn btn-outline btn-sm equipo-selected-change" @click="clearEquipoSeleccionado">Cambiar</button>
+              </div>
+              <template v-else>
+                <input class="form-input" :class="{err:errors.equipoId}" v-model="equipoSearch" @focus="equipoSearchOpen=true" @blur="setTimeout(()=>equipoSearchOpen=false,150)" placeholder="Buscar por código, descripción o clasificación…" autocomplete="off"/>
+                <div v-if="equipoSearchOpen" class="equipo-search-dropdown">
+                  <div v-if="!equipoResultados.length" class="equipo-search-empty">Sin resultados</div>
+                  <div v-for="e in equipoResultados" :key="e.id" class="equipo-search-item" @mousedown.prevent="pickEquipo(e)">
+                    <span class="sn-tag">{{e.codigoInterno || '—'}}</span>
+                    <div class="equipo-search-item-body">
+                      <div class="equipo-search-item-title">{{e.marca}} {{e.modelo}}</div>
+                      <div class="equipo-search-item-sub">{{e.tipo}}<template v-if="e.descripcion"> · {{e.descripcion}}</template></div>
+                    </div>
+                  </div>
+                </div>
+              </template>
               <div class="form-error" v-if="errors.equipoId">{{errors.equipoId}}</div>
             </div>
-            <div class="form-row">
+            <div class="form-row" v-if="modalMode!=='solicitar'">
               <div class="form-group">
                 <label class="form-label">Tipo <span class="req">*</span></label>
                 <select class="form-select" v-model="form.tipo">
                   <option v-for="t in tipoOptions" :key="t" :value="t">{{t}}</option>
                 </select>
               </div>
-              <div class="form-group">
+              <div class="form-group" v-if="modalMode==='programar'">
                 <label class="form-label">Estado</label>
                 <select class="form-select" v-model="form.estado">
                   <option v-for="s in estadoOptions" :key="s" :value="s">{{s}}</option>
@@ -3324,16 +3464,35 @@ const MantenimientosView = {
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Descripción <span class="req">*</span></label>
+              <label class="form-label">Ubicación</label>
+              <input class="form-input" :value="equipoSeleccionado ? (equipoSeleccionado.ubicacion || 'Sin ubicación registrada') : '—'" readonly style="opacity:0.75;cursor:not-allowed"/>
+              <div class="form-hint">Se toma automáticamente del equipo seleccionado</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Diagnóstico <span class="req">*</span></label>
+              <textarea class="form-textarea" :class="{err:errors.diagnostico}" v-model="form.diagnostico" placeholder="Diagnóstico previo del equipo…" :readonly="modalMode==='completar'" :style="modalMode==='completar' ? 'opacity:0.75;cursor:not-allowed' : ''"></textarea>
+              <div class="form-error" v-if="errors.diagnostico">{{errors.diagnostico}}</div>
+            </div>
+            <div class="form-group" v-if="modalMode!=='solicitar'">
+              <label class="form-label">Técnico que diagnosticó <span class="req">*</span></label>
+              <select v-if="modalMode!=='completar'" class="form-select" :class="{err:errors.tecnicoDiagnostico}" v-model="form.tecnicoDiagnostico">
+                <option value="">Seleccionar…</option>
+                <option v-for="t in tecnicosDisponibles" :key="t.id" :value="t.nombre">{{t.nombre}}</option>
+              </select>
+              <input v-else class="form-input" :value="form.tecnicoDiagnostico" readonly style="opacity:0.75;cursor:not-allowed"/>
+              <div class="form-error" v-if="errors.tecnicoDiagnostico">{{errors.tecnicoDiagnostico}}</div>
+            </div>
+            <div class="form-group" v-if="modalMode!=='solicitar'">
+              <label class="form-label">Detalle del mantenimiento <span class="req">*</span></label>
               <textarea class="form-textarea" :class="{err:errors.descripcion}" v-model="form.descripcion" placeholder="Detalle del mantenimiento…"></textarea>
               <div class="form-error" v-if="errors.descripcion">{{errors.descripcion}}</div>
             </div>
-            <div class="form-group">
+            <div class="form-group" v-if="modalMode!=='solicitar'">
               <label class="form-label">Fecha programada <span class="req">*</span></label>
               <input class="form-input" :class="{err:errors.fechaProgramada}" type="date" :min="todayStr()" v-model="form.fechaProgramada"/>
               <div class="form-error" v-if="errors.fechaProgramada">{{errors.fechaProgramada}}</div>
             </div>
-            <div class="form-group">
+            <div class="form-group" v-if="modalMode!=='solicitar'">
               <label class="form-label">Técnico <span class="req">*</span></label>
               <select class="form-select" :class="{err:errors.tecnico}" v-model="form.tecnico">
                 <option value="">Seleccionar…</option>
@@ -3347,7 +3506,7 @@ const MantenimientosView = {
             <button type="button" class="btn btn-outline" @click="closeModal">Cancelar</button>
             <button type="submit" class="btn btn-primary" :disabled="saving">
               <span v-if="saving" class="btn-loading"><span class="spinner"></span> Guardando…</span>
-              <span v-else>Programar</span>
+              <span v-else>{{modalMode==='solicitar' ? 'Enviar solicitud' : (modalMode==='completar' ? 'Confirmar programación' : 'Programar')}}</span>
             </button>
           </div>
         </form>
@@ -3777,7 +3936,7 @@ const QRScanner = {
     onMounted(()=>{ startCamera(); });
     onBeforeUnmount(()=>{ stopCamera(); });
 
-    return { videoEl, scanning, error, result, foundEquipo, close, manualMode, startCamera, estadoMeta, formatMoney };
+    return { videoEl, scanning, error, result, foundEquipo, close, manualMode, startCamera, estadoMeta, formatMoney, valorActualNeto };
   },
   template:`
   <div class="qr-scanner" @click.self="close">
@@ -3826,6 +3985,7 @@ const QRScanner = {
               <div class="data-grid">
                 <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{foundEquipo.proveedor || '—'}}</span></div>
                 <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(foundEquipo.costo)}}</span></div>
+                <div class="data-field" v-if="valorActualNeto(foundEquipo)"><span class="dl">Valor actual (neto de depreciación)</span><span class="dv mono">{{formatMoney(valorActualNeto(foundEquipo).valor)}} <span style="color:var(--gray-500);font-size:11px">({{Math.round(valorActualNeto(foundEquipo).pctDepreciado)}}%)</span></span></div>
                 <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{foundEquipo.fechaAdquisicion || '—'}}</span></div>
                 <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{foundEquipo.fechaGarantia || '—'}}</span></div>
                 <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{foundEquipo.vidaUtil}} años</span></div>
@@ -3910,7 +4070,7 @@ const QRPublicView = {
         loading.value = false;
       }
     });
-    return { loading, notFound, eq, estadoMeta, formatMoney };
+    return { loading, notFound, eq, estadoMeta, formatMoney, valorActualNeto };
   },
   template:`
   <div class="qr-public-page">
@@ -3954,6 +4114,7 @@ const QRPublicView = {
             <div class="data-grid">
               <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor || '—'}}</span></div>
               <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
+              <div class="data-field" v-if="valorActualNeto(eq)"><span class="dl">Valor actual (neto de depreciación)</span><span class="dv mono">{{formatMoney(valorActualNeto(eq).valor)}} <span style="color:var(--gray-500);font-size:11px">({{Math.round(valorActualNeto(eq).pctDepreciado)}}%)</span></span></div>
               <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion || '—'}}</span></div>
               <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia || '—'}}</span></div>
               <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>

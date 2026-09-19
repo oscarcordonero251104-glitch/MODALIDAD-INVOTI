@@ -35,7 +35,7 @@ export async function PUT(
     await requireAdmin(request)
     const { id } = await params
     const body = await request.json()
-    const { tipo, marca, modelo, sn, codigoInterno, descripcion, estado, ubicacion, responsable, proveedor, factura, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto, diagnosticoPdf } = body
+    const { tipo, marca, modelo, sn, codigoInterno, descripcion, estado, ubicacion, responsable, proveedor, factura, numeroContrato, costo, fechaAdquisicion, fechaGarantia, vidaUtil, especificaciones, notas, foto, diagnosticoPdf } = body
 
     const existing = await db.equipo.findUnique({ where: { id } })
     if (!existing) {
@@ -67,6 +67,7 @@ export async function PUT(
         responsable: responsable || null,
         proveedor: proveedor || null,
         factura: factura || null,
+        numeroContrato: numeroContrato || null,
         costo: costo || 0,
         fechaAdquisicion: fechaAdquisicion || null,
         fechaGarantia: fechaGarantia || null,

@@ -35,6 +35,7 @@ model Equipo {
   responsable       String?
   proveedor         String?
   factura           String?
+  numeroContrato    String?
   costo             Float    @default(0) // en cordobas (NIO)
   fechaAdquisicion  String?
   fechaGarantia     String?
@@ -66,12 +67,15 @@ model Movimiento {
 model Mantenimiento {
   id              String   @id @default(cuid())
   equipoId        String
-  tipo            String   // Preventivo, Correctivo
-  descripcion     String
-  fechaProgramada String
+  tipo            String?  // Preventivo, Correctivo — nulo mientras es solo una solicitud del tecnico
+  ubicacion       String?  // ubicacion del equipo al momento de programar el mantenimiento
+  diagnostico     String?  // diagnostico previo que motiva el mantenimiento
+  tecnicoDiagnostico String? // tecnico que realizo ese diagnostico
+  descripcion     String?  // detalle del mantenimiento — lo completa el admin al programar
+  fechaProgramada String?  // la completa el admin al programar
   fechaEjecucion  String?
-  tecnico         String
-  estado          String   @default("Pendiente") // Pendiente, En proceso, Completado, Cancelado
+  tecnico         String?  // tecnico asignado — lo completa el admin al programar
+  estado          String   @default("Pendiente") // Solicitado, Pendiente, En proceso, Completado, Cancelado
   costo           Float    @default(0)
   createdAt       DateTime @default(now())
 

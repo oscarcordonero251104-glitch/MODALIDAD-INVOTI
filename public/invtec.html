@@ -3150,6 +3150,11 @@ const MantenimientosView = {
     const eqUbicacion = (m) => m.equipo ? (m.equipo.ubicacion || '—') : '—';
     const formatEnviado = (d) => d ? new Date(d).toLocaleString('es-AR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
 
+    const detalleOpen = ref(false);
+    const detalleItem = ref(null);
+    const verDetalle = (m) => { detalleItem.value = m; detalleOpen.value = true; };
+    const cerrarDetalle = () => { detalleOpen.value = false; };
+
     const tipoOptions = ['Preventivo','Correctivo'];
     const estadoOptions = ['Pendiente','En proceso','Completado','Cancelado'];
     const modalOpen = ref(false);
@@ -3345,7 +3350,8 @@ const MantenimientosView = {
       tipoOptions, estadoOptions, modalOpen, saving, form, errors, todayStr, tecnicosDisponibles, openModal, closeModal, submitForm,
       cambiarEstado, estadoSaving,
       equipoSearch, equipoSearchOpen, equipoSeleccionado, equipoResultados, pickEquipo, clearEquipoSeleccionado,
-      modalMode, editingId, openSolicitarModal, openProgramarSolicitud };
+      modalMode, editingId, openSolicitarModal, openProgramarSolicitud,
+      detalleOpen, detalleItem, verDetalle, cerrarDetalle, estadoMeta };
   },
   template:`
   <div>
@@ -3385,12 +3391,12 @@ const MantenimientosView = {
         </div>
       </div>
       <div v-else-if="filtered.length">
-        <div v-for="m in filtered" :key="m.id" :class="['mt-card', stCls(m.estado)]">
+        <div v-for="m in filtered" :key="m.id" :class="['mt-card', stCls(m.estado)]" style="cursor:pointer" @click="verDetalle(m)">
           <div class="mt-head">
-            <router-link :to="'/equipos/'+m.equipoId+'?tab=mt'" style="text-decoration:none;color:inherit">
+            <div>
               <div class="mt-title">{{m.tipo || 'Solicitud de mantenimiento'}} · {{eqName(m)}}</div>
               <div class="mt-eq"><span class="sn-tag">{{eqSn(m)}}</span></div>
-            </router-link>
+            </div>
             <span :class="['badge', stBadge(m.estado)]"><span class="bdot"></span>{{m.estado}}</span>
           </div>
           <div v-if="m.diagnostico" class="mt-desc"><strong style="color:var(--gray-300)">Diagnóstico:</strong> {{m.diagnostico}}</div>
@@ -3404,10 +3410,10 @@ const MantenimientosView = {
             <div class="mr"><span v-html="$icon('clock')"></span><span class="ml">Enviado:</span>{{formatEnviado(m.createdAt)}}</div>
           </div>
           <div class="mt-actions" style="display:flex;gap:8px;margin-top:12px" v-if="m.estado==='Solicitado' || m.estado==='Pendiente' || m.estado==='En proceso'">
-            <button v-if="m.estado==='Solicitado' && auth.user && auth.user.rol==='admin'" class="btn btn-primary btn-sm" @click="openProgramarSolicitud(m)">Programar</button>
-            <button v-if="m.estado==='Pendiente'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'En proceso')">Iniciar</button>
-            <button v-if="m.estado!=='Solicitado'" class="btn btn-primary btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Completado')">Completar</button>
-            <button v-if="m.estado!=='Solicitado'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click="cambiarEstado(m,'Cancelado')">Cancelar</button>
+            <button v-if="m.estado==='Solicitado' && auth.user && auth.user.rol==='admin'" class="btn btn-primary btn-sm" @click.stop="openProgramarSolicitud(m)">Programar</button>
+            <button v-if="m.estado==='Pendiente'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click.stop="cambiarEstado(m,'En proceso')">Iniciar</button>
+            <button v-if="m.estado!=='Solicitado'" class="btn btn-primary btn-sm" :disabled="estadoSaving===m.id" @click.stop="cambiarEstado(m,'Completado')">Completar</button>
+            <button v-if="m.estado!=='Solicitado'" class="btn btn-outline btn-sm" :disabled="estadoSaving===m.id" @click.stop="cambiarEstado(m,'Cancelado')">Cancelar</button>
           </div>
         </div>
       </div>
@@ -3510,6 +3516,54 @@ const MantenimientosView = {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div class="modal-overlay" v-if="detalleOpen && detalleItem" @click.self="cerrarDetalle">
+      <div class="modal-box">
+        <div class="modal-head">
+          <h3>{{detalleItem.estado==='Solicitado' ? 'Detalle de la solicitud' : 'Detalle del mantenimiento'}}</h3>
+          <button class="modal-close" @click="cerrarDetalle" v-html="$icon('x')"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group" v-if="detalleItem.equipo">
+            <label class="form-label">Equipo</label>
+            <div class="panel" style="padding:14px">
+              <div class="mt-eq" style="margin-bottom:8px"><span class="sn-tag">{{detalleItem.equipo.codigoInterno || detalleItem.equipo.sn}}</span>
+                <span :class="['badge', estadoMeta(detalleItem.equipo.estado).cls]" style="margin-left:8px"><span class="bdot"></span>{{estadoMeta(detalleItem.equipo.estado).label}}</span>
+              </div>
+              <div style="font-weight:600;color:var(--gray-100)">{{detalleItem.equipo.marca}} {{detalleItem.equipo.modelo}}</div>
+              <div style="color:var(--gray-400);font-size:13px;margin-top:2px">{{detalleItem.equipo.tipo}}<template v-if="detalleItem.equipo.descripcion"> · {{detalleItem.equipo.descripcion}}</template></div>
+              <div class="mt-meta" style="margin-top:10px">
+                <div class="mr"><span v-html="$icon('pin')"></span><span class="ml">Ubicación:</span>{{detalleItem.equipo.ubicacion || '—'}}</div>
+                <div class="mr" v-if="detalleItem.equipo.responsable"><span v-html="$icon('user')"></span><span class="ml">Responsable:</span>{{detalleItem.equipo.responsable}}</div>
+                <div class="mr"><span v-html="$icon('cpu')"></span><span class="ml">Serie:</span>{{detalleItem.equipo.sn}}</div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group" v-if="detalleItem.diagnostico">
+            <label class="form-label">Diagnóstico</label>
+            <div class="panel" style="padding:14px;color:var(--gray-200)">{{detalleItem.diagnostico}}</div>
+            <div class="mt-meta" style="margin-top:8px">
+              <div class="mr" v-if="detalleItem.tecnicoDiagnostico"><span v-html="$icon('user')"></span><span class="ml">Diagnosticó:</span>{{detalleItem.tecnicoDiagnostico}}</div>
+              <div class="mr"><span v-html="$icon('clock')"></span><span class="ml">Enviado:</span>{{formatEnviado(detalleItem.createdAt)}}</div>
+            </div>
+          </div>
+          <div class="form-group" v-if="detalleItem.descripcion">
+            <label class="form-label">Detalle del mantenimiento</label>
+            <div class="panel" style="padding:14px;color:var(--gray-200)">{{detalleItem.descripcion}}</div>
+            <div class="mt-meta" style="margin-top:8px">
+              <div class="mr" v-if="detalleItem.tipo"><span v-html="$icon('wrench')"></span><span class="ml">Tipo:</span>{{detalleItem.tipo}}</div>
+              <div class="mr" v-if="detalleItem.fechaProgramada"><span v-html="$icon('calendar')"></span><span class="ml">Programado:</span>{{detalleItem.fechaProgramada}}</div>
+              <div class="mr" v-if="detalleItem.fechaEjecucion"><span v-html="$icon('check')"></span><span class="ml">Ejecutado:</span>{{detalleItem.fechaEjecucion}}</div>
+              <div class="mr" v-if="detalleItem.tecnico"><span v-html="$icon('user')"></span><span class="ml">Técnico:</span>{{detalleItem.tecnico}}</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px">
+          <router-link :to="'/equipos/'+detalleItem.equipoId+'?tab=info'" class="btn btn-outline" @click="cerrarDetalle">Ver ficha completa del equipo</router-link>
+          <button v-if="detalleItem.estado==='Solicitado' && auth.user && auth.user.rol==='admin'" type="button" class="btn btn-primary" @click="cerrarDetalle(); openProgramarSolicitud(detalleItem)">Programar</button>
+        </div>
       </div>
     </div>
   </div>`

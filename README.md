@@ -150,12 +150,23 @@ Tipografía:
 # Instalar dependencias
 bun install
 
+# Configurar variables de entorno (DATABASE_URL, JWT_SECRET)
+cp .env.example .env
+
+# Crear la base de datos SQLite aplicando las migraciones
+bun run db:migrate
+
+# Cargar usuarios demo y equipos de ejemplo
+bun run seed
+
 # Servidor de desarrollo
 bun run dev
 
 # Verificar código
 bun run lint
 ```
+
+La base de datos (`prisma/db/custom.db`) es local y **no se versiona**. Para empezar de cero: `bun run db:reset` (borra, migra y vuelve a sembrar).
 
 ---
 

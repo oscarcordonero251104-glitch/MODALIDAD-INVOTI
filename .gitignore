@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -56,6 +57,9 @@ server.log
 # Uploads (user-provided files)
 /upload/
 
-# Local database files
-db/*.db
-db/*.db-journalprisma/db/
+# Local database files (never commit SQLite data: it holds user password hashes)
+*.db
+*.db-journal
+db/
+prisma/db/
+prisma/prisma/

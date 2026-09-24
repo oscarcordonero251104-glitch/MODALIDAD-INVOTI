@@ -2,8 +2,28 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { db } from './db'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'inv-oti-secret-key-change-in-production'
 const SESSION_DURATION = 8 * 60 * 60 // 8 hours in seconds
+const JWT_SECRET_MIN_LENGTH = 32
+// Valor que antes venia hardcodeado; se rechaza para que nadie lo siga usando.
+const INSECURE_DEFAULT_SECRET = 'inv-oti-secret-key-change-in-production'
+
+// Lee y valida JWT_SECRET. Se llama al arrancar el servidor (src/instrumentation.ts)
+// y cada vez que se firma o verifica un token, asi nunca se usa un secreto por defecto.
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET?.trim()
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET no esta definido. Configuralo en .env (ver .env.example) antes de iniciar el servidor.'
+    )
+  }
+  if (secret === INSECURE_DEFAULT_SECRET) {
+    throw new Error('JWT_SECRET usa el valor por defecto inseguro. Genera uno nuevo (ver .env.example).')
+  }
+  if (secret.length < JWT_SECRET_MIN_LENGTH) {
+    throw new Error(`JWT_SECRET debe tener al menos ${JWT_SECRET_MIN_LENGTH} caracteres.`)
+  }
+  return secret
+}
 
 export interface AuthUser {
   id: string
@@ -24,7 +44,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 export function generateToken(user: AuthUser): string {
   return jwt.sign(
     { id: user.id, usuario: user.usuario, nombre: user.nombre, rol: user.rol },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: SESSION_DURATION }
   )
 }
@@ -45,7 +65,7 @@ export async function deleteSession(token: string): Promise<void> {
 
 export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any
+    const decoded = jwt.verify(token, getJwtSecret()) as any
     const session = await db.session.findUnique({ where: { token } })
     if (!session || session.expiresAt < new Date()) {
       return null

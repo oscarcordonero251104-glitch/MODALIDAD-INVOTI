@@ -64,9 +64,21 @@ Abrí `public/invtec.html` en cualquier navegador moderno. Funciona completo exc
 ### Opción 2 — Servidor de desarrollo (recomendado)
 ```bash
 bun install
+cp .env.example .env   # y completá JWT_SECRET (ver abajo)
 bun run dev
 ```
 Abrí `http://localhost:3000` — redirige automáticamente al login.
+
+---
+
+## ⚙️ Variables de entorno
+
+Copiá `.env.example` a `.env` y completá los valores. El servidor **no arranca** si falta `JWT_SECRET`.
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `JWT_SECRET` | Sí | Secreto para firmar los tokens de sesión. Mínimo 32 caracteres; se rechaza el antiguo valor por defecto. Generalo con `openssl rand -base64 48`. Cambiarlo cierra todas las sesiones abiertas. |
+| `DATABASE_URL` | Sí | Ruta de la base SQLite de Prisma, p. ej. `file:./prisma/db/custom.db`. |
 
 ---
 

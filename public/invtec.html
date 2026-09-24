@@ -4121,7 +4121,7 @@ const QRPublicView = {
         loading.value = false;
       }
     });
-    return { loading, notFound, eq, estadoMeta, formatMoney, valorActualNeto };
+    return { loading, notFound, eq, estadoMeta };
   },
   template:`
   <div class="qr-public-page">
@@ -4152,28 +4152,20 @@ const QRPublicView = {
             <img :src="eq.foto" alt="Foto del equipo" style="width:100%;max-height:260px;object-fit:contain;display:block;background:var(--bg-void)"/>
           </div>
           <div style="margin-top:24px">
-            <div class="panel-sub" style="margin-bottom:10px">UBICACIÓN Y RESPONSABLE</div>
+            <div class="panel-sub" style="margin-bottom:10px">UBICACIÓN</div>
             <div class="data-grid">
               <div class="data-field"><span class="dl">Clasificación</span><span class="dv">{{eq.tipo}}</span></div>
               <div class="data-field"><span class="dl">Descripción</span><span class="dv">{{eq.descripcion || '—'}}</span></div>
               <div class="data-field"><span class="dl">Ubicación</span><span class="dv">{{eq.ubicacion || '—'}}</span></div>
-              <div class="data-field"><span class="dl">Responsable</span><span class="dv">{{eq.responsable || '—'}}</span></div>
             </div>
           </div>
           <div style="margin-top:24px">
             <div class="panel-sub" style="margin-bottom:10px">ADQUISICIÓN Y GARANTÍA</div>
             <div class="data-grid">
-              <div class="data-field"><span class="dl">Proveedor</span><span class="dv">{{eq.proveedor || '—'}}</span></div>
-              <div class="data-field"><span class="dl">Costo</span><span class="dv mono">{{formatMoney(eq.costo)}}</span></div>
-              <div class="data-field" v-if="valorActualNeto(eq)"><span class="dl">Valor actual (neto de depreciación)</span><span class="dv mono">{{formatMoney(valorActualNeto(eq).valor)}} <span style="color:var(--gray-500);font-size:11px">({{Math.round(valorActualNeto(eq).pctDepreciado)}}%)</span></span></div>
               <div class="data-field"><span class="dl">Fecha de adquisición</span><span class="dv mono">{{eq.fechaAdquisicion || '—'}}</span></div>
               <div class="data-field"><span class="dl">Garantía hasta</span><span class="dv mono">{{eq.fechaGarantia || '—'}}</span></div>
               <div class="data-field"><span class="dl">Vida útil</span><span class="dv">{{eq.vidaUtil}} años</span></div>
             </div>
-          </div>
-          <div v-if="eq.notas" style="margin-top:24px">
-            <div class="panel-sub" style="margin-bottom:8px">NOTAS</div>
-            <div style="font-size:13.5px;color:var(--gray-300);line-height:1.6">{{eq.notas}}</div>
           </div>
         </div>
       </template>

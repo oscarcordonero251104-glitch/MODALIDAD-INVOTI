@@ -1208,6 +1208,19 @@ const estadoMeta = (e) => ({
   almacen:{label:'En Almacén',cls:'storage'},
 }[e] || {label:e,cls:'gray'});
 const eqById = (id) => DB.equipos.find(e => String(e.id) === String(id));
+// Texto de busqueda de un equipo: toda dato que lo caracteriza, sin incluir el costo.
+const equipoBusquedaTexto = (e) => {
+  const specs = e.especificaciones ? Object.values(e.especificaciones).join(' ') : '';
+  return [
+    e.tipo, e.marca, e.modelo, e.sn, e.codigoInterno, e.descripcion,
+    e.ubicacion, e.responsable, e.proveedor, e.factura, e.numeroContrato,
+    specs, e.notas,
+  ].filter(Boolean).join(' ').toLowerCase();
+};
+const equipoCoincide = (e, q) => {
+  const t = (q||'').trim().toLowerCase();
+  return !t || equipoBusquedaTexto(e).includes(t);
+};
 const formatMoney = (n) => 'C$' + Number(n||0).toLocaleString('es-AR');
 // Depreciacion en linea recta (Ley 822, Decreto 01-2013) a partir de costo, fecha de adquisicion y vida util.
 const valorActualNeto = (eq) => {
@@ -2226,11 +2239,7 @@ const EquiposListView = {
 
     const filtered = computed(()=>{
       return DB.equipos.filter(e => {
-        if(filters.descripcion) {
-          const q = filters.descripcion.toLowerCase();
-          const texto = ((e.tipo||'')+' '+(e.marca||'')+' '+(e.modelo||'')+' '+(e.sn||'')+' '+(e.responsable||'')+' '+(e.descripcion||'')+' '+(e.notas||'')).toLowerCase();
-          if(!texto.includes(q)) return false;
-        }
+        if(filters.descripcion && !equipoCoincide(e, filters.descripcion)) return false;
         if(filters.estados.length && !filters.estados.includes(e.estado)) return false;
         if(filters.ubicacion && e.ubicacion!==filters.ubicacion) return false;
         if(filters.fechaDesde && e.fechaAdquisicion < filters.fechaDesde) return false;
@@ -3194,14 +3203,7 @@ const MantenimientosView = {
     const equipoSeleccionado = computed(()=> DB.equipos.find(e=>e.id===form.equipoId) || null);
     const equipoResultados = computed(()=>{
       const q = equipoSearch.value.trim().toLowerCase();
-      const lista = !q ? DB.equipos : DB.equipos.filter(e =>
-        (e.codigoInterno||'').toLowerCase().includes(q) ||
-        (e.descripcion||'').toLowerCase().includes(q) ||
-        (e.tipo||'').toLowerCase().includes(q) ||
-        (e.marca||'').toLowerCase().includes(q) ||
-        (e.modelo||'').toLowerCase().includes(q) ||
-        (e.sn||'').toLowerCase().includes(q)
-      );
+      const lista = !q ? DB.equipos : DB.equipos.filter(e => equipoCoincide(e, q));
       return lista.slice(0,8);
     });
     const pickEquipo = (e) => {
@@ -3866,12 +3868,7 @@ const SearchModal = {
     const q = ref('');
     const results = computed(()=>{
       if(!q.value.trim()) return [];
-      const t = q.value.toLowerCase();
-      return DB.equipos.filter(e =>
-        e.marca.toLowerCase().includes(t) || e.modelo.toLowerCase().includes(t) ||
-        e.sn.toLowerCase().includes(t) || e.tipo.toLowerCase().includes(t) ||
-        (e.responsable||'').toLowerCase().includes(t) || (e.ubicacion||'').toLowerCase().includes(t)
-      ).slice(0,8);
+      return DB.equipos.filter(e => equipoCoincide(e, q.value)).slice(0,8);
     });
     const close = () => { ui.searchOpen=false; q.value=''; };
     const go = (id) => { close(); router.push('/equipos/'+id); };

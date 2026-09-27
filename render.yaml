@@ -1,0 +1,17 @@
+# Blueprint de Render para INV-OTI
+# Render > New > Blueprint > elegir este repositorio.
+services:
+  - type: web
+    name: inv-oti
+    runtime: docker
+    plan: starter # el disco persistente requiere un plan pago
+    healthCheckPath: /invtec.html
+    envVars:
+      - key: DATABASE_URL
+        value: file:/data/inv-oti.db
+      - key: JWT_SECRET
+        generateValue: true
+    disk:
+      name: inv-oti-data
+      mountPath: /data
+      sizeGB: 1

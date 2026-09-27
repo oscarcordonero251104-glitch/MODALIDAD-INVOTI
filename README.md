@@ -68,6 +68,12 @@ bun run dev
 ```
 Abrí `http://localhost:3000` — redirige automáticamente al login.
 
+### Opción 3 — Publicar en Render
+El repo incluye `Dockerfile` y `render.yaml`. En Render: **New → Blueprint** → elegir este repositorio → **Apply**.
+- La base SQLite se guarda en un disco persistente (`/data`), que requiere plan pago (Starter).
+- `JWT_SECRET` se genera automáticamente.
+- Los usuarios demo se crean solo en el primer arranque: **cambiá sus contraseñas** después de entrar.
+
 ---
 
 ## 🔐 Credenciales de demo

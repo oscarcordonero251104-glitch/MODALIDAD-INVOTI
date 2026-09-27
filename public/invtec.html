@@ -2222,7 +2222,7 @@ const EquiposListView = {
     const page = ref(1);
     const perPage = 10;
 
-    const estadoOptions = [{v:'activo',l:'Activo'},{v:'reparacion',l:'Reparación'},{v:'baja',l:'Baja'},{v:'almacen',l:'Almacén'}];
+    const estadoOptions = [{v:'activo',l:'Activo'},{v:'reparacion',l:'Reparación'},{v:'baja',l:'Dar de Baja'},{v:'almacen',l:'Almacén'}];
 
     const addUbicacion = () => {
       const nombre = prompt('Nombre de la nueva ubicación:');
@@ -2839,7 +2839,7 @@ const EquipoFormView = {
       const dbTipos = DB.equipos.map(e=>e.tipo).filter(Boolean);
       return [...new Set([...tipoOptions, ...dbTipos])].sort();
     });
-    const estadoOptions = [{v:'activo',l:'Activo'},{v:'almacen',l:'En Almacén'},{v:'reparacion',l:'En Reparación'},{v:'baja',l:'Baja'}];
+    const estadoOptions = [{v:'activo',l:'Activo'},{v:'almacen',l:'En Almacén'},{v:'reparacion',l:'En Reparación'},{v:'baja',l:'Dar de Baja'}];
     // Vida util segun Ley 822 (Ley de Concertacion Tributaria), Reglamento Decreto 01-2013, Art. 34:
     // equipos de computo (CPU, monitor, impresora, laptop) = 2 anios; equipos de comunicacion y "los demas" = 5 anios.
     const vidaUtilPorTipo = { Laptop:2, CPU:2, Monitor:2, Impresora:2, Servidor:5, Switch:5, Router:5, UPS:5 };
@@ -2930,6 +2930,41 @@ const EquipoFormView = {
       } catch(e){ saving.value=false; toast.error('Error al guardar: '+e.message); }
     };
 
+    const uploadingDiagnostico = ref(false);
+    const diagnosticoInput = ref(null);
+    const triggerDiagnosticoInput = () => { diagnosticoInput.value && diagnosticoInput.value.click(); };
+    const onDiagnosticoSelect = async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if(!file) return;
+      const esPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if(!esPdf){ toast.error('El archivo debe ser un PDF'); return; }
+      if(file.size > 10*1024*1024){ toast.error('El PDF no puede superar 10MB'); return; }
+      uploadingDiagnostico.value = true;
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const eqActual = existing.value;
+        await updateEquipo(eqActual.id, {
+          tipo: eqActual.tipo, marca: eqActual.marca, modelo: eqActual.modelo, sn: eqActual.sn,
+          codigoInterno: eqActual.codigoInterno, descripcion: eqActual.descripcion, estado: form.estado,
+          ubicacion: eqActual.ubicacion, responsable: eqActual.responsable, proveedor: eqActual.proveedor,
+          factura: eqActual.factura, numeroContrato: eqActual.numeroContrato, costo: eqActual.costo,
+          fechaAdquisicion: eqActual.fechaAdquisicion, fechaGarantia: eqActual.fechaGarantia,
+          vidaUtil: eqActual.vidaUtil, notas: eqActual.notas, foto: eqActual.foto, diagnosticoPdf: base64,
+        });
+        toast.success('Diagnóstico subido correctamente');
+      } catch(err) {
+        toast.error(err.message || 'Error al subir el diagnóstico');
+      } finally {
+        uploadingDiagnostico.value = false;
+      }
+    };
+
     const fileInput = ref(null);
     const photoError = ref('');
     const isDragging = ref(false);
@@ -2954,8 +2989,9 @@ const EquipoFormView = {
     const onDrop = (e) => { isDragging.value=false; readImageFile(e.dataTransfer.files && e.dataTransfer.files[0]); };
     const removePhoto = (e) => { e.stopPropagation(); form.foto=''; photoError.value=''; };
 
-    return { DB, form, isEdit, tipoOptions, clasificacionOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, save, saving,
+    return { DB, form, isEdit, existing, tipoOptions, clasificacionOptions, estadoOptions, addUbicacion, errors, isValid, snToUpper, save, saving,
       fileInput, photoError, isDragging, triggerFileInput, onFileSelect, onDrop, removePhoto,
+      uploadingDiagnostico, diagnosticoInput, triggerDiagnosticoInput, onDiagnosticoSelect,
       goBack:()=>router.back() };
   },
   template:`
@@ -2997,6 +3033,20 @@ const EquipoFormView = {
             <label class="form-label">Marca <span class="req">*</span></label>
             <input class="form-input" :class="{err:errors.marca}" v-model="form.marca" placeholder="Dell, HP, Lenovo…"/>
             <div class="form-error" v-if="errors.marca">{{errors.marca}}</div>
+          </div>
+        </div>
+        <div v-if="isEdit && form.estado==='baja'" class="form-group" style="background:var(--bg-elevated);border:1px solid var(--gray-700);border-radius:8px;padding:14px 16px">
+          <label class="form-label">Diagnóstico</label>
+          <input ref="diagnosticoInput" type="file" accept="application/pdf" style="display:none" @change="onDiagnosticoSelect"/>
+          <button type="button" class="btn btn-primary btn-sm" :disabled="uploadingDiagnostico" @click="triggerDiagnosticoInput">
+            <span class="ic" v-html="$icon('upload')"></span>
+            {{uploadingDiagnostico ? 'Subiendo…' : (existing && existing.diagnosticoPdf ? 'Subir otro PDF de diagnóstico' : 'Subir PDF de diagnóstico')}}
+          </button>
+          <div class="form-hint" style="margin-top:8px">Solo archivos PDF.</div>
+          <div v-if="existing && existing.diagnosticoPdf" style="margin-top:10px">
+            <a :href="existing.diagnosticoPdf" target="_blank" :download="'diagnostico-'+form.sn+'.pdf'" style="font-size:12.5px;color:var(--blue-400);display:inline-flex;align-items:center;gap:6px">
+              <span class="ic" v-html="$icon('file')"></span>Ver archivo actual
+            </a>
           </div>
         </div>
         <div class="form-row">

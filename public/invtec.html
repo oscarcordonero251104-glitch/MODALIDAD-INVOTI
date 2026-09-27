@@ -2843,9 +2843,10 @@ const EquipoFormView = {
     // Vida util segun Ley 822 (Ley de Concertacion Tributaria), Reglamento Decreto 01-2013, Art. 34:
     // equipos de computo (CPU, monitor, impresora, laptop) = 2 anios; equipos de comunicacion y "los demas" = 5 anios.
     const vidaUtilPorTipo = { Laptop:2, CPU:2, Monitor:2, Impresora:2, Servidor:5, Switch:5, Router:5, UPS:5 };
+    // La vida util nunca es editable por el usuario: siempre se fija segun la clasificacion, conforme a la Ley 822.
     watch(() => form.tipo, (t) => {
-      if(!isEdit.value) form.vidaUtil = vidaUtilPorTipo[t] ?? 5;
-    });
+      form.vidaUtil = vidaUtilPorTipo[t] ?? 5;
+    }, { immediate: true });
     const addUbicacion = () => {
       const nombre = prompt('Nombre de la nueva ubicación:');
       if (nombre && nombre.trim()) {
@@ -2874,7 +2875,6 @@ const EquipoFormView = {
       if(!form.numeroContrato) e.numeroContrato='Requerido';
       if(form.costo===''||form.costo===null||form.costo===undefined) e.costo='Requerido';
       else if(Number(form.costo)<0) e.costo='Debe ser positivo';
-      if(form.vidaUtil===''||form.vidaUtil===null||form.vidaUtil===undefined) e.vidaUtil='Requerido';
       if(!form.fechaAdquisicion) e.fechaAdquisicion='Requerido';
       if(!form.fechaGarantia) e.fechaGarantia='Requerido';
       else if(form.fechaAdquisicion && form.fechaGarantia<form.fechaAdquisicion) e.fechaGarantia='Debe ser posterior a la adquisición';
@@ -3071,10 +3071,9 @@ const EquipoFormView = {
             <div class="form-hint" v-else>C$ Córdobas nicaragüenses</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Vida útil (años) <span class="req">*</span></label>
-            <input class="form-input" :class="{err:errors.vidaUtil}" type="number" min="1" v-model="form.vidaUtil"/>
-            <div class="form-error" v-if="errors.vidaUtil">{{errors.vidaUtil}}</div>
-            <div class="form-hint" v-else>Sugerida según la clasificación (Ley 822, Decreto 01-2013) · se puede ajustar</div>
+            <label class="form-label">Vida útil (años)</label>
+            <input class="form-input" :value="form.vidaUtil" readonly style="opacity:0.75;cursor:not-allowed"/>
+            <div class="form-hint">Fijada automáticamente según la clasificación (Ley 822, Decreto 01-2013) · no se puede modificar</div>
           </div>
         </div>
         <div class="form-row">

@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+*.db
+*.db-journal
+*.log
+preview-*.png
+login-view.png
+download
+examples

@@ -68,6 +68,13 @@ bun run dev
 ```
 Abrí `http://localhost:3000` — redirige automáticamente al login.
 
+### Opción 2b — Todo en local con un clic (base de datos + backend + frontend)
+Requiere [Node.js](https://nodejs.org) 20 o superior.
+- **Windows:** doble clic en `iniciar-local.bat`.
+- **macOS/Linux:** `sh iniciar-local.sh`.
+
+La primera vez crea `.env`, instala dependencias, crea la base SQLite en `db/custom.db` y carga los usuarios y equipos de ejemplo. Las siguientes veces solo arranca, conservando los datos. Abre `http://localhost:3000/invtec.html`.
+
 ### Opción 3 — Publicar en Render
 El repo incluye `Dockerfile` y `render.yaml`. En Render: **New → Blueprint** → elegir este repositorio → **Apply**.
 - La base SQLite se guarda en un disco persistente (`/data`), que requiere plan pago (Starter).

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 // Lectura pública de un equipo (sin autenticación) para el flujo de escaneo de QR.
+// Solo expone datos no sensibles: sin costo, proveedor, factura, notas ni responsable.
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -20,15 +21,10 @@ export async function GET(
         descripcion: true,
         estado: true,
         ubicacion: true,
-        responsable: true,
-        proveedor: true,
-        factura: true,
-        costo: true,
         fechaAdquisicion: true,
         fechaGarantia: true,
         vidaUtil: true,
         especificaciones: true,
-        notas: true,
         foto: true,
       },
     })
